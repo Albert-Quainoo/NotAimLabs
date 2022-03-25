@@ -56,8 +56,16 @@ public class Pause : MonoBehaviour
 
     public void RestartGame()
     {
+        pauseMenu.SetActive(false);
+        Time.timeScale = 1f;
+        isGamePaused = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Crosshair.SetActive(true);
+        PlayerController.SetActive(true);
 
-        SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex);
+        {
+            SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex); //Loads current scene
+        }
         
         
 
