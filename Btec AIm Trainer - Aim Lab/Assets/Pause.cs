@@ -54,11 +54,9 @@ public class Pause : MonoBehaviour
         SceneManager.LoadScene("MainMenu");
     }
 
-    public void QuitGame()
+    public void RestartGame()
     {
-        Application.Quit();
-
-        Debug.Log("Quit");
+        SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex);
 
     }
 }
