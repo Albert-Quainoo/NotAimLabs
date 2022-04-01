@@ -2,15 +2,27 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
-{
-    public void PlayGame()
 
+{
+    public static bool isGamePaused = false;
+
+    public void PlayGame()
+    
     {
+        Time.timeScale = 1f;     
+        isGamePaused = false;
+        
+
+
         SceneManager.LoadScene("SampleScene");
 
       }
+
+
+
 
     public void QuitGame()
     {
