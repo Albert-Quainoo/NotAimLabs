@@ -131,7 +131,7 @@ MonoBehaviour:
   fov: 60
   invertCamera: 0
   cameraCanMove: 1
-  mouseSensitivity: 2
+  mouseSensitivity: 0.1
   maxLookAngle: 50
   lockCursor: 1
   crosshair: 1
@@ -468,6 +468,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5b55b67751b5c248b60c92818dd37bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Crosshair: {fileID: 0}
+  PlayerController: {fileID: 0}
   pauseMenu: {fileID: 0}
 --- !u!1 &4459864851397454630
 GameObject:
