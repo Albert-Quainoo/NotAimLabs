@@ -2133,7 +2133,7 @@ PrefabInstance:
     - target: {fileID: 4459864850019384740, guid: 6bacecc4f3df9584198879c73a6b6c36, type: 3}
       propertyPath: crosshairImage
       value: 
-      objectReference: {fileID: 21300000, guid: 131e948fff36b18469cc5cd940dc2ae7, type: 3}
+      objectReference: {fileID: 21300000, guid: 3fa1dd2011652d44a8af9cfcb505ff93, type: 3}
     - target: {fileID: 4459864850019384740, guid: 6bacecc4f3df9584198879c73a6b6c36, type: 3}
       propertyPath: crosshairColor.a
       value: 1
@@ -2165,7 +2165,7 @@ PrefabInstance:
     - target: {fileID: 4459864850190357395, guid: 6bacecc4f3df9584198879c73a6b6c36, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 21300000, guid: 131e948fff36b18469cc5cd940dc2ae7, type: 3}
+      objectReference: {fileID: 21300000, guid: 3fa1dd2011652d44a8af9cfcb505ff93, type: 3}
     - target: {fileID: 4459864851310106429, guid: 6bacecc4f3df9584198879c73a6b6c36, type: 3}
       propertyPath: m_LocalPosition.z
       value: 2.76
