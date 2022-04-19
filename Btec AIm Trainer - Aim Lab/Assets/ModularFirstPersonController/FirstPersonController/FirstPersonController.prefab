@@ -131,7 +131,7 @@ MonoBehaviour:
   fov: 60
   invertCamera: 0
   cameraCanMove: 1
-  mouseSensitivity: 0.1
+  mouseSensitivity: 1
   maxLookAngle: 50
   lockCursor: 1
   crosshair: 1
@@ -151,7 +151,7 @@ MonoBehaviour:
   sprintSpeed: 7
   sprintDuration: 5
   sprintCooldown: 0.5
-  sprintFOV: 80
+  sprintFOV: 179
   sprintFOVStepTime: 10
   useSprintBar: 1
   hideBarWhenFull: 1

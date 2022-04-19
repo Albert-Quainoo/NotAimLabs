@@ -7,7 +7,12 @@ public class Sensitvity : MonoBehaviour
 {
    
     public FirstPersonController Controller;
-   
+
+    void Start()
+    {
+        Controller.mouseSensitivity = 1f; 
+    }
+
     public void SetSensitvity(float sens)
     {
 

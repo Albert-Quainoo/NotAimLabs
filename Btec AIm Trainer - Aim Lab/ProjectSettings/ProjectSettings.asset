@@ -592,7 +592,20 @@ PlayerSettings:
   webGLLinkerTarget: 1
   webGLThreadsSupport: 0
   webGLDecompressionFallback: 0
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    1: TMP_PRESENT
+    7: TMP_PRESENT
+    13: TMP_PRESENT
+    14: TMP_PRESENT
+    19: TMP_PRESENT
+    21: TMP_PRESENT
+    25: TMP_PRESENT
+    27: TMP_PRESENT
+    28: TMP_PRESENT
+    29: TMP_PRESENT
+    30: TMP_PRESENT
+    32: TMP_PRESENT
+    33: TMP_PRESENT
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}
