@@ -7,7 +7,7 @@ namespace ModularOptions {
 	/// Inherit from this and override ApplySetting to make an option class.
 	/// </summary>
 	[RequireComponent(typeof(Slider))]
-	public abstract class SliderOption : OptionBase<float, FloatSlider> {
+	public abstract class SliderOption : Sensitivity<float, FloatSlider> {
 
 		protected Slider slider;
 		public override float Value {
@@ -26,11 +26,11 @@ namespace ModularOptions {
 		protected virtual void Awake(){
 			slider = GetComponent<Slider>();
 			slider.onValueChanged.AddListener((float _) => OnValueChange(_)); //UI classes use Unity events, requiring delegates (delegate() { OnValueChange(); }) or lambda expressions (() => OnValueChange()). Listeners are not persistent, so no need to unsub
-			Value = OptionSaveSystem.LoadFloat(optionName, defaultSetting.value); //Saved value if there is one, else default. After subscribing so OnValueChange applies setting
+			Value = Sensitivity.LoadFloat(optionName, defaultSetting.value); //Saved value if there is one, else default. After subscribing so OnValueChange applies setting
 		}
 
 		protected void OnValueChange(float _value){
-			OptionSaveSystem.SaveFloat(optionName, _value);
+			Sensitivity.SaveFloat(optionName, _value);
 			ApplySetting(_value);
 			if (allowPresetCallback && preset != null)
 				preset.SetCustom();

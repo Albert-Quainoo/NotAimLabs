@@ -5,9 +5,9 @@ namespace ModularOptions {
 	/// Base-class for option controls.
 	/// UI element base classes inherit from this with their data type as type parameter.
 	/// </summary>
-	public abstract class OptionBase<T, U> : MonoBehaviour
+	public abstract class Sensitivity<T, U> : MonoBehaviour
 		where T : struct
-		where U : UIDataType<T> {
+		where U : Sensitivity<T> {
 
 		[Tooltip("Key for saving & loading, with other possible re-use.")]
 		public string optionName;
@@ -50,7 +50,7 @@ namespace ModularOptions {
 	/// Used so the data can be drawn in a user-friendly way with PropertyDrawers.
 	/// </summary>
 	[System.Serializable]
-	public class UIDataType<T> where T : struct {
+	public class Sensitivity<T> where T : struct {
 		[Tooltip("Setting used if no saved setting exists. Can also be used externally to restore defaults.")]
 		[SerializeField] public T value;
 	}
@@ -59,22 +59,22 @@ namespace ModularOptions {
 	/// Editor slider for a float value, with min/max/wholeNumbers parameters
 	/// fetched from the UI Slider on the same GameObject.
 	/// </summary>
-	[System.Serializable] public class FloatSlider : UIDataType<float> {}
+	[System.Serializable] public class FloatSlider : Sensitivity<float> {}
 	/// <summary>
 	/// Editor dropdown for an int value, with dropdown options
 	/// fetched from the UI Dropdown on the same GameObject.
 	/// </summary>
-	[System.Serializable] public class IntDropdown : UIDataType<int> {}
+	[System.Serializable] public class IntDropdown : Sensitivity<int> {}
 	/// <summary>
 	/// Wrapper class for a bool. Does nothing, but is required by the framework.
 	/// </summary>
-	[System.Serializable] public class BoolToggle : UIDataType<bool> {}
+	[System.Serializable] public class BoolToggle : Sensitivity<bool> {}
 
 	/// <summary>
 	/// Acts like a wrapper for the SaveSystem to de-couple references in other parts of the system.
 	/// I.e: if you want to change save system it can be swapped right here.
 	/// </summary>
-	public static class OptionSaveSystem {
+	public static class Sensitivity {
 		
 		public static void SaveFloat(string _key, float _value){
 			PlayerPrefs.SetFloat(_key, _value);

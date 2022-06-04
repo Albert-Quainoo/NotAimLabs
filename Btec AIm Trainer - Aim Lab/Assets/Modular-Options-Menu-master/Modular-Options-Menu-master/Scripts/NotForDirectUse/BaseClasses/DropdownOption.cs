@@ -11,7 +11,7 @@ namespace ModularOptions {
 #else
 	[RequireComponent(typeof(Dropdown))]
 #endif
-	public abstract class DropdownOption : OptionBase<int, IntDropdown> {
+	public abstract class DropdownOption : Sensitivity<int, IntDropdown> {
 #if TMP_PRESENT
 		protected TMPro.TMP_Dropdown dropdown;
 #else
@@ -39,11 +39,11 @@ namespace ModularOptions {
 			dropdown = GetComponent<Dropdown>();
 #endif
 			dropdown.onValueChanged.AddListener((int _) => OnValueChange(_)); //UI classes use Unity events, requiring delegates (delegate() { OnValueChange(); }) or lambda expressions (() => OnValueChange()). Listeners are not persistent, so no need to unsub
-			Value = OptionSaveSystem.LoadInt(optionName, defaultSetting.value); //Saved value if there is one, else default. After subscribing so OnValueChange applies setting
+			Value = Sensitivity.LoadInt(optionName, defaultSetting.value); //Saved value if there is one, else default. After subscribing so OnValueChange applies setting
 		}
 
 		protected void OnValueChange(int _value){
-			OptionSaveSystem.SaveInt(optionName, _value);
+			Sensitivity.SaveInt(optionName, _value);
 			ApplySetting(_value);
 			if (allowPresetCallback && preset != null)
 				preset.SetCustom();

@@ -12,6 +12,12 @@ public class Target : MonoBehaviour
     public void Hit()
     {
         transform.position = TargetBounds.Instance.GetRandomPosition();
+
+         AudioSource audioSource = GetComponent<AudioSource>();
+
+         audioSource.loop = false;
+        audioSource.Play();
+
     }
 
 

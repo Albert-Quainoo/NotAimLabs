@@ -10,7 +10,7 @@ namespace ModularOptions {
 	public class SavePlayerPrefsButton : MonoBehaviour {
 		
 		void Awake(){
-			GetComponent<Button>().onClick.AddListener(() => OptionSaveSystem.SaveToDisk());
+			GetComponent<Button>().onClick.AddListener(() => Sensitivity.SaveToDisk());
 		}
 	}
 }

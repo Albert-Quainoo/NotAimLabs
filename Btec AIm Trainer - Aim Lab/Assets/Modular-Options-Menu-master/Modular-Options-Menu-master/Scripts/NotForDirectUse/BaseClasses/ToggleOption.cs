@@ -7,7 +7,7 @@ namespace ModularOptions {
 	/// Inherit from this and override ApplySetting to make an option class.
 	/// </summary>
 	[RequireComponent(typeof(Toggle))]
-	public abstract class ToggleOption : OptionBase<bool, BoolToggle> {
+	public abstract class ToggleOption : Sensitivity<bool, BoolToggle> {
 
 		protected Toggle toggle;
 		public override bool Value {
@@ -26,11 +26,11 @@ namespace ModularOptions {
 		protected virtual void Awake(){
 			toggle = GetComponent<Toggle>();
 			toggle.onValueChanged.AddListener((bool _) => OnValueChange(_)); //UI classes use Unity events, requiring delegates (delegate() { OnValueChange(); }) or lambda expressions (() => OnValueChange()). Listeners are not persistent, so no need to unsub
-			Value = OptionSaveSystem.LoadBool(optionName, defaultSetting.value); //Saved value if there is one, else default. After subscribing so OnValueChange applies setting
+			Value = Sensitivity.LoadBool(optionName, defaultSetting.value); //Saved value if there is one, else default. After subscribing so OnValueChange applies setting
 		}
 
 		protected void OnValueChange(bool _value){
-			OptionSaveSystem.SaveBool(optionName, _value);
+			Sensitivity.SaveBool(optionName, _value);
 			ApplySetting(_value);
 			if (allowPresetCallback && preset != null)
 				preset.SetCustom();
