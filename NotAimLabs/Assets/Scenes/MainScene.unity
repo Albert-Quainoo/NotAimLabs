@@ -4805,11 +4805,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d90ba6530d9bfda47abb4610956b2f44, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _mouseSensitivity: 5.21
   playerCamera: {fileID: 4459864850420561678}
   fov: 60
   invertCamera: 0
   cameraCanMove: 1
-  mouseSensitivity: 0.1
   maxLookAngle: 50
   lockCursor: 1
   crosshair: 1

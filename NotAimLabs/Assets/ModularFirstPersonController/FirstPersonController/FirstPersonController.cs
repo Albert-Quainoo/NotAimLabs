@@ -18,6 +18,21 @@ using System.Net;
 public class FirstPersonController : MonoBehaviour
 {
 
+    [SerializeField]
+    public float _mouseSensitivity = 20;
+
+    public float mouseSensitivity
+   { 
+    get => _mouseSensitivity;
+   set
+   {
+    _mouseSensitivity = value;
+    OnSensitivityChanged?.Invoke(value);
+    Debug.Log($"FPC: Sensitivity set to: {value}");
+   }
+   }
+   public event System.Action<float> OnSensitivityChanged;
+    
     private Rigidbody rb;
     private Vector3 groundNormal = Vector3.up;
     private bool componentsInitialized = false;
@@ -27,7 +42,7 @@ public class FirstPersonController : MonoBehaviour
     public float fov = 60f;
     public bool invertCamera = false;
     public bool cameraCanMove = true;
-    public float mouseSensitivity = 2f;
+    
     public float maxLookAngle = 50f;
 
     // Crosshair
@@ -169,17 +184,28 @@ public class FirstPersonController : MonoBehaviour
 
     private void Awake()
     {
+        Debug.Log("Start called");
         InitializeComponents();
     }
 
     private void Start()
     {
-        if (!componentsInitialized) return;
+        Debug.Log("Start called");
+        if (!componentsInitialized) 
+        {
+            Debug.LogWarning("Components not initialized in start");
+            return;
+        }
 
         SetupCursor();
         SetupCrosshair();
         SetupSprintBar();
+        
+        Debug.Log($"First Person Controller: Initial Sens Value {mouseSensitivity}");
+
+     
     }
+
 
     private void SetupCursor()
     {
@@ -257,6 +283,12 @@ public class FirstPersonController : MonoBehaviour
             float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
             float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
+           // Debug logging to see values
+           if (Input.GetAxis ("Mouse X") != 0 || Input.GetAxis("Mouse Y")!= 0)
+           {
+                Debug.Log($"Mouse movement - Sensitivity: {mouseSensitivity}, " +
+                         $"Final X: {mouseX}, Y: {mouseY}");
+           }
             // Account for camera inversion
             mouseY = invertCamera ? mouseY : -mouseY;
             
@@ -273,6 +305,15 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
+
+    
+    public void OnValidate()
+    {
+        Debug.Log($"Sensitivity changed to: {mouseSensitivity}");
+    }
+
+
+    
     private void HandleZoom()
     {
         if (!enableZoom || isSprinting) return;
@@ -479,11 +520,21 @@ public class FirstPersonControllerEditor : Editor
 {
     FirstPersonController fpc;
     SerializedObject SerFPC;
+   
 
     private void OnEnable()
     {
         fpc = (FirstPersonController)target;
         SerFPC = new SerializedObject(fpc);
+    }
+
+    private void OnValidate()
+    {
+        if (fpc != null)
+        {
+            fpc.mouseSensitivity = fpc._mouseSensitivity;
+            Debug.Log($"Editor OnValidate - Setting Sensitivity to: {fpc._mouseSensitivity}");
+        }
     }
 
     public override void OnInspectorGUI()
@@ -679,6 +730,7 @@ public class FirstPersonControllerEditor : Editor
         }
     }
 
+  
 }
 
 #endif

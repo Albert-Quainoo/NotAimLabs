@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace ModularOptions {
 	/// <summary>
@@ -9,12 +10,66 @@ namespace ModularOptions {
 	[AddComponentMenu("Modular Options/Controls/Sensitivity Slider")]
 	public class SensitivitySlider : SliderOption, ISliderDisplayFormatter {
 
-		public FirstPersonController cameraController;
+	 public FirstPersonController cameraController;
+	private const string SENSITIVITY_PREF_KEY = "MouseSensitivity";
+
+	private bool updatingValue = false;
+
+
+        private void Start()
+        {
+            if (cameraController != null)
+			{
+				cameraController.OnSensitivityChanged += OnControllerSensitivityChanged;
+
+				float savedSens = PlayerPrefs.GetFloat(SENSITIVITY_PREF_KEY, cameraController.mouseSensitivity);
+
+			updatingValue = true;
+			Value = savedSens;
+			cameraController.mouseSensitivity = savedSens;
+			updatingValue = false;
+
+			Debug.Log($"Slider Start - Initialised with sensitivity {savedSens}");
+			}
+			else
+			{
+				Debug.LogWarning("Camera controller not asssigned to the slider");
+			}
+        }
+
+        private void OnDestroy()
+        {
+            if (cameraController != null)
+			{
+				cameraController.OnSensitivityChanged += OnControllerSensitivityChanged;
+
+			}
+        }
+
+		private void OnControllerSensitivityChanged(float newValue)
+		{
+           if (!updatingValue) {
+			updatingValue = true;
+			Value = newValue;
+			updatingValue = false;
+			Debug.Log($"Slider Updated from controller change {newValue}");
+		   }
+		}
+        private void Update ()
+	   {
+		if (cameraController != null && Input.GetKeyDown(KeyCode.F1))
+		{
+			Debug.Log($"Current sensitivity: {cameraController.mouseSensitivity}");
+		}
+	   }
+
 
 #if UNITY_EDITOR
 		/// <summary>
 		/// Auto-assign editor reference, if suitable component is found.
 		/// </summary>
+          
+
 		protected override void Reset(){
 			cameraController = Camera.main.GetComponent<FirstPersonController>();
 			base.Reset();
@@ -22,12 +77,23 @@ namespace ModularOptions {
 #endif
 
 		protected override void ApplySetting(float _value){
-			if (cameraController != null) //Allows options screen to exist in scenes without a camera controller
-				cameraController.mouseSensitivity = _value / 10f; //Whole numbers + 90 as max sensitivity = 0.1-9 with 1 decimal.
+			if (cameraController != null  && !updatingValue) 
+			{
+              updatingValue = true;
+			  float oldValue = cameraController.mouseSensitivity;
+			  cameraController.mouseSensitivity = _value;
+			  PlayerPrefs.SetFloat(SENSITIVITY_PREF_KEY, _value);
+			  PlayerPrefs.Save();
+			  updatingValue = false;
+			
+			Debug.Log($"Sensitivity Changed to {oldValue:F1}, New:{_value:F1}");
+
+			}
+		
         }
 
 		public string OverrideFormatting(float _value){
-			return (_value/10f).ToString();
+			return _value.ToString("F1");
 		}
     }
 }
