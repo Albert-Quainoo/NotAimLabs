@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class Value : MonoBehaviour
 {
 
-    [SerializeField] private float currentAccuracy = 1f;
+    
      private Score ScoreScript;
      private Text accuracyText;
 

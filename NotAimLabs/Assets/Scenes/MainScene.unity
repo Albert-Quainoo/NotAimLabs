@@ -2567,7 +2567,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0980aa9f8be46764188ec9161db99cdf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentAccuracy: 1
 --- !u!1 &1777431390
 GameObject:
   m_ObjectHideFlags: 0
@@ -4805,7 +4804,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d90ba6530d9bfda47abb4610956b2f44, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _mouseSensitivity: 5.21
+  _mouseSensitivity: 20
   playerCamera: {fileID: 4459864850420561678}
   fov: 60
   invertCamera: 0
