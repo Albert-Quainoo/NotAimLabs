@@ -1,9 +1,3 @@
-// CHANGE LOG
-// 
-// CHANGES || version VERSION
-//
-// "Enable/Disable Headbob, Changed look rotations - should result in reduced camera jitters" || version 1.0.1
-
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -17,9 +11,19 @@ using System.Net;
 
 public class FirstPersonController : MonoBehaviour
 {
-    [SerializeField, HideInInspector]
-    public float _mouseSensitivity = 20;
+    #region Camera Movement Variables
 
+    public Camera playerCamera;
+    public float fov = 60f;
+    public bool invertCamera = false;
+    public bool cameraCanMove = true;
+    public float maxLookAngle = 80f;
+
+    // Internal reference to mouse sensitivity (for editor)
+    [SerializeField, HideInInspector]
+    public float _mouseSensitivity = 10f;
+
+    // Public sensitivity property that actually gets used for movement
     public float mouseSensitivity
     {
         get => _mouseSensitivity;
@@ -28,36 +32,45 @@ public class FirstPersonController : MonoBehaviour
             Debug.Log($"FPC: Changing sensitivity from {_mouseSensitivity} to {value}");
             _mouseSensitivity = value;
             OnSensitivityChanged?.Invoke(value);
+
+            // Save to PlayerPrefs
+            PlayerPrefs.SetFloat("MouseSensitivity", value);
+            PlayerPrefs.Save();
+
+            //Force an input update
+            Input.ResetInputAxes();
+
+
             Debug.Log($"FPC: Sensitivity set to: {_mouseSensitivity}");
         }
     }
     public event System.Action<float> OnSensitivityChanged;
 
-    private Rigidbody rb;
-    private Vector3 groundNormal = Vector3.up;
-    private bool componentsInitialized = false;
+    // Rotation helpers
+    private float yaw = 0.0f;
+    private float pitch = 0.0f;
+    private const string xAxis = "Mouse X";
+    private const string yAxis = "Mouse Y";
 
-    #region Camera Movement Variables
-    public Camera playerCamera;
-    public float fov = 60f;
-    public bool invertCamera = false;
-    public bool cameraCanMove = true;
+    private float defaultFOV;
+    private float targetFOV;
+    private float targetStepTime = 5f;
 
-    public float maxLookAngle = 50f;
+    #endregion
 
-    // Crosshair
+    #region UI & Crosshair
+
     public bool lockCursor = true;
     public bool crosshair = true;
     public Sprite crosshairImage;
     public Color crosshairColor = Color.white;
 
-    // Internal Variables
-    private float yaw = 0.0f;
-    private float pitch = 0.0f;
     private Image crosshairObject;
+
     #endregion
 
-    #region Camera Zoom Variables
+    #region Zoom Variables
+
     public bool enableZoom = true;
     public bool holdToZoom = false;
     public KeyCode zoomKey = KeyCode.Mouse1;
@@ -65,22 +78,17 @@ public class FirstPersonController : MonoBehaviour
     public float zoomStepTime = 5f;
 
     private bool isZoomed = false;
+
     #endregion
 
-    #region Movement Variables
-    public bool playerCanMove = true;
-    public float walkSpeed = 5f;
-    public float maxVelocityChange = 10f;
-
-    private bool isWalking = false;
-
     #region Sprint Variables
+
     public bool enableSprint = true;
     public bool unlimitedSprint = false;
     public KeyCode sprintKey = KeyCode.LeftShift;
-    public float sprintSpeed = 7f;
+    public float sprintSpeed = 10f;
     public float sprintDuration = 5f;
-    public float sprintCooldown = .5f;
+    public float sprintCooldown = 2f;
     public float sprintFOV = 80f;
     public float sprintFOVStepTime = 10f;
 
@@ -99,36 +107,82 @@ public class FirstPersonController : MonoBehaviour
     private float sprintBarHeight;
     private bool isSprintCooldown = false;
     private float sprintCooldownReset;
+
     #endregion
 
     #region Jump Variables
+
     public bool enableJump = true;
     public KeyCode jumpKey = KeyCode.Space;
     public float jumpPower = 5f;
 
+    // Jump checks
     private bool isGrounded = false;
+    private Vector3 groundNormal = Vector3.up;
+
     #endregion
 
     #region Crouch Variables
+
     public bool enableCrouch = true;
     public bool holdToCrouch = true;
     public KeyCode crouchKey = KeyCode.LeftControl;
-    public float crouchHeight = .75f;
-    public float speedReduction = .5f;
+    public float crouchHeight = 0.75f;
+    public float speedReduction = 0.5f;
 
     private bool isCrouched = false;
     private Vector3 originalScale;
-    #endregion
+
     #endregion
 
-    #region Head Bob Variables
+    #region Headbob Variables
+
     public bool enableHeadBob = true;
     public Transform joint;
     public float bobSpeed = 10f;
-    public Vector3 bobAmount = new Vector3(.15f, .05f, 0f);
+    public Vector3 bobAmount = new Vector3(0.15f, 0.05f, 0f);
 
     private Vector3 jointOriginalPos;
     private float bobTimer = 0;
+
+    #endregion
+
+    #region Footstep Variables
+
+    public bool enableFootsteps = true;
+    public float baseStepSpeed = 0.5f;
+    public float crouchStepMultiplier = 1.5f;
+    public float sprintStepMultiplier = 0.6f;
+    public AudioSource footstepAudioSource = default;
+    public AudioClip[] woodClips = default;
+    public AudioClip[] metalClips = default;
+    public AudioClip[] grassClips = default;
+
+    private float footstepTimer = 0;
+    private float GetCurrentOffset => isCrouched ? baseStepSpeed * crouchStepMultiplier : isSprinting ? baseStepSpeed * sprintStepMultiplier : baseStepSpeed;
+
+    #endregion
+
+    #region Movement Variables
+
+    public bool playerCanMove = true;
+    public float walkSpeed = 5f;
+    public float maxVelocityChange = 10f;
+    public float gravity = 30f;
+
+    [Header("Slope Handling")]
+    public float maxSlopeAngle = 50f;
+    private float slopeCheckDistance;
+    private float slopeSlideSpeed;
+    private RaycastHit slopeHit;
+    private bool cancellingGrounded;
+
+    private Rigidbody rb;
+    private CharacterController charController;
+    private Vector3 moveDirection;
+    private bool isWalking = false;
+    private bool componentsInitialized = false;
+
     #endregion
 
     private void InitializeComponents()
@@ -137,14 +191,22 @@ public class FirstPersonController : MonoBehaviour
         {
             // Get or add required components
             rb = GetComponent<Rigidbody>();
+            charController = GetComponent<CharacterController>();
+
             if (playerCamera == null)
+            {
                 playerCamera = GetComponentInChildren<Camera>();
-            crosshairObject = GetComponentInChildren<Image>();
+                if (playerCamera == null)
+                    Debug.LogError("Camera component missing from FPS Controller!");
+            }
 
             if (HasRequiredComponents())
             {
                 // Initialize camera
                 playerCamera.fieldOfView = fov;
+                defaultFOV = fov;
+                targetFOV = defaultFOV;
+
                 Vector3 rotation = transform.rotation.eulerAngles;
                 yaw = rotation.y;
                 pitch = playerCamera.transform.localRotation.eulerAngles.x;
@@ -154,18 +216,20 @@ public class FirstPersonController : MonoBehaviour
                 originalScale = transform.localScale;
                 if (joint != null)
                     jointOriginalPos = joint.localPosition;
+                else
+                    Debug.LogWarning("Camera Joint object not found. Assign a joint object for headbob.");
 
-                // Configure rigidbody
-                rb.freezeRotation = true;
-                rb.useGravity = true;
-                rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+                // Configure rigidbody if present
+                if (rb != null)
+                {
+                    rb.freezeRotation = true;
+                    rb.useGravity = true;
+                    rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+                }
 
                 // Initialize sprint
-                if (!unlimitedSprint)
-                {
-                    sprintRemaining = sprintDuration;
-                    sprintCooldownReset = sprintCooldown;
-                }
+                sprintRemaining = sprintDuration;
+                sprintCooldownReset = sprintCooldown;
 
                 componentsInitialized = true;
             }
@@ -174,30 +238,48 @@ public class FirstPersonController : MonoBehaviour
 
     private bool HasRequiredComponents()
     {
-        if (rb == null || playerCamera == null)
+        if (playerCamera == null)
         {
-            Debug.LogError("Missing required components. Please ensure Rigidbody and Camera are assigned.");
+            Debug.LogError("Missing required camera component");
             return false;
         }
+
+        if (rb == null && charController == null)
+        {
+            Debug.LogError("Missing both Rigidbody and CharacterController components. At least one is required.");
+            return false;
+        }
+
         return true;
     }
 
     private void Awake()
     {
-        Debug.Log("Awake called");
-        _mouseSensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 3.0f);
-        Debug.Log($"Loaded sensitivity from PlayerPrefs: {_mouseSensitivity}");
-        mouseSensitivity = _mouseSensitivity;
+        Debug.Log("FPC Awake called");
+        // Load sensitivity from PlayerPrefs on startup if it exists
+        string prefKey = "MouseSensitivity";
+        if (PlayerPrefs.HasKey(prefKey))
+        {
+            float savedSensitivity = PlayerPrefs.GetFloat(prefKey);
+            _mouseSensitivity = savedSensitivity;
+            Debug.Log($"FPC Awake - Loaded sensitivity from PlayerPrefs: {savedSensitivity}");
+        }
+        else
+        {
+            Debug.Log($"FPC Awake - No saved sensitivity found, using default: {_mouseSensitivity}");
+        }
+
         InitializeComponents();
     }
 
     private void Start()
     {
-        Debug.Log("Start called");
+        Debug.Log("FPC Start called");
         if (!componentsInitialized)
         {
-            Debug.LogWarning("Components not initialized in start");
-            return;
+            Debug.LogWarning("Components not initialized in start, attempting initialization");
+            InitializeComponents();
+            if (!componentsInitialized) return;
         }
 
         SetupCursor();
@@ -218,17 +300,21 @@ public class FirstPersonController : MonoBehaviour
 
     private void SetupCrosshair()
     {
-        if (crosshairObject != null)
+        if (crosshair)
         {
-            if (crosshair)
+            if (crosshairObject == null)
+            {
+                CreateCrosshair();
+            }
+            else
             {
                 crosshairObject.sprite = crosshairImage;
                 crosshairObject.color = crosshairColor;
             }
-            else
-            {
-                crosshairObject.gameObject.SetActive(false);
-            }
+        }
+        else if (crosshairObject != null)
+        {
+            crosshairObject.gameObject.SetActive(false);
         }
     }
 
@@ -264,37 +350,78 @@ public class FirstPersonController : MonoBehaviour
     {
         if (!componentsInitialized || !HasRequiredComponents()) return;
 
-        HandleCamera();
-        HandleZoom();
-        HandleSprint();
-        HandleJump();
-        HandleCrouch();
+        // Trigger functions
+        if (playerCanMove)
+        {
+            HandleMouseLook();
+            HandleMovementInput();
 
-        CheckGround();
+            if (enableZoom)
+                HandleZoom();
 
-        if (enableHeadBob && joint != null)
-            HeadBob();
+            if (enableSprint)
+                HandleSprint();
+
+            if (enableJump)
+                HandleJump();
+
+            if (enableCrouch)
+                HandleCrouch();
+
+            if (enableHeadBob)
+                HandleHeadbob();
+
+            if (enableFootsteps)
+                HandleFootsteps();
+
+            if (charController != null)
+                ApplyFinalMovements();
+        }
     }
 
-    private void HandleCamera()
+    private void FixedUpdate()
     {
-        if (cameraCanMove)
-        {
-            if (_mouseSensitivity != mouseSensitivity)
-            {
-                Debug.Log($"Mismatch detected! Field:{_mouseSensitivity}, Property:{mouseSensitivity}");
-            }
+        if (!componentsInitialized || !playerCanMove || rb == null) return;
 
-            float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-            float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        HandleRigidbodyMovement();
+        CheckGround();
+    }
+
+    private void HandleMouseLook()
+    {
+        // Manage cursor lock and visibility
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (lockCursor)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+        }
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (lockCursor)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
+        }
+
+        // Apply rotation if camera can move
+        if (cameraCanMove)
+
+        {   //Gets sensitivity value directly
+            float currentSensitvity = this.mouseSensitivity;
+
+
+            float mouseX = Input.GetAxis(xAxis) * mouseSensitivity;
+            float mouseY = Input.GetAxis(yAxis) * mouseSensitivity * (invertCamera ? 1 : -1);
 
             // Debug logging to see values
-            if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
+            if (Input.GetAxis(xAxis) != 0 || Input.GetAxis(yAxis) != 0)
             {
                 Debug.Log($"FPC: Using sensitivity value: {mouseSensitivity} for camera movement");
             }
-            // Account for camera inversion
-            mouseY = invertCamera ? mouseY : -mouseY;
 
             // Update yaw and pitch
             yaw += mouseX;
@@ -309,88 +436,34 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
-    public void OnValidate()
+    private void HandleMovementInput()
     {
-        Debug.Log($"Sensitivity changed to: {mouseSensitivity}");
-    }
+        float horizontalInput = Input.GetAxis("Horizontal");
+        float verticalInput = Input.GetAxis("Vertical");
 
-    private void HandleZoom()
-    {
-        if (!enableZoom || isSprinting) return;
+        // Calculate movement direction
+        Vector3 forward = transform.TransformDirection(Vector3.forward);
+        Vector3 right = transform.TransformDirection(Vector3.right);
 
-        if (!holdToZoom)
+        // Check if walking
+        isWalking = !isSprinting && (horizontalInput != 0 || verticalInput != 0) && isGrounded;
+
+        // Calculate the current speed based on various states
+        float currentSpeed = isSprinting && CanSprint() ? sprintSpeed : walkSpeed;
+        if (isCrouched) currentSpeed *= speedReduction;
+
+        if (charController != null)
         {
-            if (Input.GetKeyDown(zoomKey))
-                isZoomed = !isZoomed;
-        }
-        else
-        {
-            isZoomed = Input.GetKey(zoomKey);
-        }
-
-        float targetFOV = isZoomed ? zoomFOV : fov;
-        playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFOV, zoomStepTime * Time.deltaTime);
-    }
-
-    private void HandleSprint()
-    {
-        if (!enableSprint) return;
-
-        if (isSprinting)
-        {
-            if (!unlimitedSprint)
-            {
-                sprintRemaining -= Time.deltaTime;
-                if (sprintRemaining <= 0)
-                {
-                    isSprinting = false;
-                    isSprintCooldown = true;
-                }
-            }
-
-            playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, sprintFOV, sprintFOVStepTime * Time.deltaTime);
-        }
-        else
-        {
-            sprintRemaining = Mathf.Min(sprintRemaining + Time.deltaTime, sprintDuration);
-        }
-
-        if (isSprintCooldown)
-        {
-            sprintCooldown -= Time.deltaTime;
-            if (sprintCooldown <= 0)
-            {
-                isSprintCooldown = false;
-                sprintCooldown = sprintCooldownReset;
-            }
-        }
-
-        if (useSprintBar && !unlimitedSprint)
-        {
-            float sprintRemainingPercent = sprintRemaining / sprintDuration;
-            sprintBar.transform.localScale = new Vector3(sprintRemainingPercent, 1f, 1f);
-
-            if (hideBarWhenFull)
-            {
-                sprintBarCG.alpha = isSprinting ? 1 : Mathf.MoveTowards(sprintBarCG.alpha, 0, Time.deltaTime * 2f);
-            }
+            // Apply final movement
+            float moveDirectionY = moveDirection.y;
+            moveDirection = (forward * verticalInput + right * horizontalInput).normalized * currentSpeed;
+            moveDirection.y = moveDirectionY;
         }
     }
 
-    private void FixedUpdate()
+    private void HandleRigidbodyMovement()
     {
-        if (!componentsInitialized) return;
-        HandleMovement();
-    }
-
-    private void HandleMovement()
-    {
-        if (!playerCanMove) return;
-
         Vector3 targetVelocity = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-
-        // Update walking state
-        isWalking = (targetVelocity.x != 0 || targetVelocity.z != 0) && isGrounded;
 
         // Calculate target speed
         float currentSpeed = isSprinting && CanSprint() ? sprintSpeed : walkSpeed;
@@ -416,16 +489,141 @@ public class FirstPersonController : MonoBehaviour
         return enableSprint &&
                Input.GetKey(sprintKey) &&
                !isSprintCooldown &&
-               (!useSprintBar || unlimitedSprint || sprintRemaining > 0f);
+               (!useSprintBar || unlimitedSprint || sprintRemaining > 0f) &&
+               (Input.GetAxis("Vertical") > 0 || Input.GetAxis("Horizontal") != 0);
+    }
+
+    private void HandleZoom()
+    {
+        if (enableZoom)
+        {
+            // Toggle zoom or hold to zoom
+            if (Input.GetKeyDown(zoomKey) && !holdToZoom)
+            {
+                isZoomed = !isZoomed;
+                targetFOV = isZoomed ? zoomFOV : defaultFOV;
+                targetStepTime = zoomStepTime;
+            }
+
+            if (holdToZoom)
+            {
+                // Holding to zoom
+                if (Input.GetKey(zoomKey))
+                {
+                    isZoomed = true;
+                    targetFOV = zoomFOV;
+                    targetStepTime = zoomStepTime;
+                }
+                else
+                {
+                    isZoomed = false;
+                    targetFOV = defaultFOV;
+                    targetStepTime = zoomStepTime;
+                }
+            }
+
+            // Apply FOV change
+            playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFOV, targetStepTime * Time.deltaTime);
+        }
+    }
+
+    private void HandleSprint()
+    {
+        // Check for sprint input
+        if (Input.GetKeyDown(sprintKey) && !isSprintCooldown)
+        {
+            isSprinting = !isSprinting;
+        }
+
+        // Cancel sprint if no movement input
+        if (isSprinting && (Input.GetAxis("Vertical") == 0 && Input.GetAxis("Horizontal") == 0))
+        {
+            isSprinting = false;
+        }
+
+        if (isSprinting)
+        {
+            // Apply FOV change when sprinting
+            if (!isZoomed)
+            {
+                targetFOV = sprintFOV;
+                targetStepTime = sprintFOVStepTime;
+            }
+
+            // Handle unlimited sprint or limited sprint logic
+            if (!unlimitedSprint)
+            {
+                sprintRemaining -= Time.deltaTime;
+                if (sprintRemaining <= 0)
+                {
+                    isSprinting = false;
+                    isSprintCooldown = true;
+                }
+            }
+        }
+        else
+        {
+            // Reset FOV if not sprinting
+            if (targetFOV != defaultFOV && !isZoomed)
+            {
+                targetFOV = defaultFOV;
+                targetStepTime = sprintFOVStepTime;
+            }
+
+            // Regenerate sprint meter when not sprinting
+            if (!unlimitedSprint)
+            {
+                sprintRemaining = Mathf.Min(sprintRemaining + Time.deltaTime, sprintDuration);
+            }
+        }
+
+        // Handle sprint cooldown
+        if (isSprintCooldown)
+        {
+            sprintCooldown -= Time.deltaTime;
+            if (sprintCooldown <= 0)
+            {
+                isSprintCooldown = false;
+                sprintCooldown = sprintCooldownReset;
+                sprintRemaining = sprintDuration;
+            }
+        }
+
+        // Update sprint UI
+        if (useSprintBar && !unlimitedSprint)
+        {
+            float sprintRemainingPercent = sprintRemaining / sprintDuration;
+            if (sprintBar != null)
+            {
+                sprintBar.transform.localScale = new Vector3(sprintRemainingPercent, 1f, 1f);
+            }
+
+            if (hideBarWhenFull && sprintBarCG != null)
+            {
+                sprintBarCG.alpha = isSprinting || sprintRemaining < sprintDuration ?
+                    1 : Mathf.MoveTowards(sprintBarCG.alpha, 0, Time.deltaTime * 2f);
+            }
+        }
     }
 
     private void HandleJump()
     {
-        if (enableJump && Input.GetKeyDown(jumpKey) && isGrounded)
+        if (Input.GetKeyDown(jumpKey) && isGrounded)
         {
-            rb.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
+            if (rb != null)
+            {
+                // Apply jump force to rigidbody
+                rb.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
+            }
+            else if (charController != null)
+            {
+                // Apply jump force to character controller
+                moveDirection.y = jumpPower;
+            }
+
             isGrounded = false;
 
+            // Cancel crouch when jumping if not holding to crouch
             if (isCrouched && !holdToCrouch)
                 Crouch();
         }
@@ -433,13 +631,9 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleCrouch()
     {
-        if (!enableCrouch) return;
-
         if (holdToCrouch)
         {
-            if (Input.GetKeyDown(crouchKey) && !isCrouched)
-                Crouch();
-            else if (Input.GetKeyUp(crouchKey) && isCrouched)
+            if (Input.GetKey(crouchKey) != isCrouched)
                 Crouch();
         }
         else
@@ -452,15 +646,119 @@ public class FirstPersonController : MonoBehaviour
     private void Crouch()
     {
         isCrouched = !isCrouched;
+
+        // Apply scale change
         transform.localScale = new Vector3(
             originalScale.x,
             isCrouched ? crouchHeight : originalScale.y,
             originalScale.z
         );
+    }
 
-        walkSpeed = isCrouched ?
-            walkSpeed * speedReduction :
-            walkSpeed / speedReduction;
+    private void HandleHeadbob()
+    {
+        if (joint == null) return;
+
+        if (isWalking || isSprinting)
+        {
+            // Calculate headbob movement
+            float bobSpeedMultiplier = isSprinting ? 2f :
+                                      isCrouched ? speedReduction :
+                                      1f;
+
+            bobTimer += Time.deltaTime * bobSpeed * bobSpeedMultiplier;
+
+            // Apply bobbing effect
+            joint.localPosition = new Vector3(
+                jointOriginalPos.x + Mathf.Sin(bobTimer) * (isSprinting ? bobAmount.x * 2 : bobAmount.x),
+                jointOriginalPos.y + Mathf.Sin(bobTimer) * (isSprinting ? bobAmount.y * 2 : bobAmount.y),
+                jointOriginalPos.z + Mathf.Sin(bobTimer) * (isSprinting ? bobAmount.z * 2 : bobAmount.z)
+            );
+        }
+        else
+        {
+            // Reset joint position when not moving
+            bobTimer = 0;
+            joint.localPosition = Vector3.Lerp(joint.localPosition, jointOriginalPos, Time.deltaTime * bobSpeed);
+        }
+    }
+
+    private void HandleFootsteps()
+    {
+        if (!isGrounded || !footstepAudioSource) return;
+
+        if (isWalking || isSprinting)
+        {
+            footstepTimer -= Time.deltaTime;
+            if (footstepTimer <= 0)
+            {
+                // Play footstep sound
+                if (footstepAudioSource.enabled)
+                {
+                    // Raycast to detect surface type
+                    RaycastHit hit;
+                    if (Physics.Raycast(transform.position, Vector3.down, out hit, 3))
+                    {
+                        // Determine surface based on tag and play appropriate sound
+                        switch (hit.collider.tag)
+                        {
+                            case "Wood":
+                                if (woodClips != null && woodClips.Length > 0)
+                                    footstepAudioSource.PlayOneShot(woodClips[UnityEngine.Random.Range(0, woodClips.Length)]);
+                                break;
+                            case "Metal":
+                                if (metalClips != null && metalClips.Length > 0)
+                                    footstepAudioSource.PlayOneShot(metalClips[UnityEngine.Random.Range(0, metalClips.Length)]);
+                                break;
+                            case "Grass":
+                                if (grassClips != null && grassClips.Length > 0)
+                                    footstepAudioSource.PlayOneShot(grassClips[UnityEngine.Random.Range(0, grassClips.Length)]);
+                                break;
+                            default:
+                                // Default sound
+                                if (woodClips != null && woodClips.Length > 0)
+                                    footstepAudioSource.PlayOneShot(woodClips[UnityEngine.Random.Range(0, woodClips.Length)]);
+                                break;
+                        }
+                    }
+                }
+
+                // Reset timer
+                footstepTimer = GetCurrentOffset;
+            }
+        }
+        else
+        {
+            // Reset timer when not moving
+            footstepTimer = GetCurrentOffset;
+        }
+    }
+
+    private void ApplyFinalMovements()
+    {
+        // Apply gravity
+        if (!isGrounded)
+        {
+            moveDirection.y -= gravity * Time.deltaTime;
+        }
+
+        // Handle slopes
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, 2f))
+        {
+            float angle = Vector3.Angle(slopeHit.normal, Vector3.up);
+            if (angle > maxSlopeAngle)
+            {
+                // Too steep, slide down
+                moveDirection.x += (1f - slopeHit.normal.y) * slopeHit.normal.x * slopeSlideSpeed;
+                moveDirection.z += (1f - slopeHit.normal.y) * slopeHit.normal.z * slopeSlideSpeed;
+            }
+        }
+
+        // Move the controller
+        charController.Move(moveDirection * Time.deltaTime);
+
+        // Update grounded state
+        isGrounded = charController.isGrounded;
     }
 
     private void CheckGround()
@@ -477,38 +775,74 @@ public class FirstPersonController : MonoBehaviour
             isGrounded = true;
             groundNormal = hit.normal;
         }
-        else
+        else if (rb != null) // Only update if we're using Rigidbody
         {
             isGrounded = false;
             groundNormal = Vector3.up;
         }
     }
 
-    private void HeadBob()
+    private void CreateCrosshair()
     {
-        if (isWalking)
+        // Create canvas for crosshair
+        GameObject canvas = new GameObject("CrosshairCanvas");
+        canvas.transform.parent = transform;
+        Canvas canvasComponent = canvas.AddComponent<Canvas>();
+        canvasComponent.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.AddComponent<UnityEngine.UI.CanvasScaler>();
+        canvas.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+        // Create crosshair
+        GameObject crosshairObj = new GameObject("Crosshair");
+        crosshairObj.transform.parent = canvas.transform;
+        crosshairObject = crosshairObj.AddComponent<UnityEngine.UI.Image>();
+
+        // Set crosshair properties
+        if (crosshairImage != null)
         {
-            float bobSpeedMultiplier = isSprinting ? 1 + sprintSpeed / walkSpeed :
-                                     isCrouched ? speedReduction :
-                                     1;
-
-            bobTimer += Time.deltaTime * bobSpeed * bobSpeedMultiplier;
-
-            joint.localPosition = new Vector3(
-                jointOriginalPos.x + Mathf.Sin(bobTimer) * bobAmount.x,
-                jointOriginalPos.y + Mathf.Sin(bobTimer) * bobAmount.y,
-                jointOriginalPos.z + Mathf.Sin(bobTimer) * bobAmount.z
-            );
+            crosshairObject.sprite = crosshairImage;
         }
         else
         {
-            bobTimer = 0;
-            joint.localPosition = Vector3.Lerp(
-                joint.localPosition,
-                jointOriginalPos,
-                Time.deltaTime * bobSpeed
-            );
+            // Create a basic crosshair
+            Texture2D tex = new Texture2D(2, 2);
+            tex.SetPixel(0, 0, Color.white);
+            tex.SetPixel(1, 0, Color.white);
+            tex.SetPixel(0, 1, Color.white);
+            tex.SetPixel(1, 1, Color.white);
+            tex.Apply();
+
+            Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+            crosshairObject.sprite = sprite;
         }
+
+        crosshairObject.color = crosshairColor;
+
+        // Position the crosshair
+        RectTransform rect = crosshairObject.GetComponent<RectTransform>();
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(25, 25);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+    }
+
+    public void SetSensitivity(float newSensitivity)
+    {
+        mouseSensitivity = newSensitivity;
+    }
+
+    private bool IsSlope()
+    {
+        if (!isGrounded || !Physics.Raycast(transform.position, Vector3.down, out slopeHit, 2f))
+            return false;
+
+        float angle = Vector3.Angle(slopeHit.normal, Vector3.up);
+        return angle != 0f && angle <= maxSlopeAngle;
+    }
+
+    public void OnValidate()
+    {
+        Debug.Log($"Sensitivity changed to: {mouseSensitivity}");
     }
 }
-

@@ -23,9 +23,10 @@ namespace ModularOptions
             {
                 // Set up initial values
                 float savedSens = cameraController.mouseSensitivity;
-                Debug.Log($"Slider - Loading saved sensitivity: {savedSens}");
+                Debug.Log($"Slider - Loading saved sensitivity from PlayerPrefs: {savedSens}");
 
                 updatingValue = true;
+                cameraController.mouseSensitivity = savedSens;
                 slider.value = savedSens;
                 updatingValue = false;
 
@@ -69,6 +70,10 @@ namespace ModularOptions
                 float value = slider.value;
                 Debug.Log($"Force update to sensitivity: {value}");
                 cameraController.mouseSensitivity = value;
+
+
+                PlayerPrefs.SetFloat(SENSITIVITY_PREF_KEY, value);
+                PlayerPrefs.Save();
             }
         }
     }
