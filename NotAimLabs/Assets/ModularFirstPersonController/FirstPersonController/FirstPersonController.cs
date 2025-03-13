@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using System;
 
 #if UNITY_EDITOR
@@ -18,6 +19,7 @@ public class FirstPersonController : MonoBehaviour
     public bool invertCamera = false;
     public bool cameraCanMove = true;
     public float maxLookAngle = 80f;
+    public bool initialInputDelay = true;
 
     // Internal reference to mouse sensitivity (for editor)
     [SerializeField, HideInInspector]
@@ -274,6 +276,8 @@ public class FirstPersonController : MonoBehaviour
 
     private void Start()
     {
+
+
         Debug.Log("FPC Start called");
         if (!componentsInitialized)
         {
@@ -286,7 +290,10 @@ public class FirstPersonController : MonoBehaviour
         SetupCrosshair();
         SetupSprintBar();
 
+        cameraCanMove = true;
+
         Debug.Log($"First Person Controller: Initial Sens Value {mouseSensitivity}");
+        Debug.Log($"Camera Can Move: {cameraCanMove}, Player Can Move: {playerCanMove}");
     }
 
     private void SetupCursor()
@@ -377,6 +384,14 @@ public class FirstPersonController : MonoBehaviour
             if (charController != null)
                 ApplyFinalMovements();
         }
+
+        if (playerCanMove && cameraCanMove)
+        {
+            HandleMouseLook(true);
+        }
+
+        Debug.Log($"Mouse X: {Input.GetAxis(xAxis)}, Mouse Y: {Input.GetAxis(yAxis)}");
+        Debug.Log($"Can Move: {cameraCanMove}, Components Initialized: {componentsInitialized}");
     }
 
     private void FixedUpdate()
@@ -387,52 +402,41 @@ public class FirstPersonController : MonoBehaviour
         CheckGround();
     }
 
-    private void HandleMouseLook()
+    public void HandleMouseLook(bool force = false)
     {
-        // Manage cursor lock and visibility
-        if (Input.GetKeyDown(KeyCode.Escape))
+        // Skip input handling if initial delay is active (unless forced)
+        if (initialInputDelay && !force) return;
+
+        // Manage cursor lock/visibility
+        if (Input.GetKeyDown(KeyCode.Escape) && lockCursor)
         {
-            if (lockCursor)
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && lockCursor)
         {
-            if (lockCursor)
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-            }
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
 
         // Apply rotation if camera can move
         if (cameraCanMove)
-
-        {   //Gets sensitivity value directly
-            float currentSensitvity = this.mouseSensitivity;
-
-
+        {
             float mouseX = Input.GetAxis(xAxis) * mouseSensitivity;
             float mouseY = Input.GetAxis(yAxis) * mouseSensitivity * (invertCamera ? 1 : -1);
 
-            // Debug logging to see values
-            if (Input.GetAxis(xAxis) != 0 || Input.GetAxis(yAxis) != 0)
-            {
-                Debug.Log($"FPC: Using sensitivity value: {mouseSensitivity} for camera movement");
-            }
-
-            // Update yaw and pitch
             yaw += mouseX;
-            pitch += mouseY;
+            pitch = Mathf.Clamp(pitch + mouseY, -maxLookAngle, maxLookAngle);
+            Debug.Log($"Calculated Yaw: {yaw}, Pitch: {pitch}");
+            Debug.Log($"Before Rotation - Transform.rotation: {transform.rotation.eulerAngles}");
+            Debug.Log($"Before Rotation - Camera.localRotation: {playerCamera.transform.localRotation.eulerAngles}");
 
-            // Clamp pitch to prevent over-rotation
-            pitch = Mathf.Clamp(pitch, -maxLookAngle, maxLookAngle);
 
-            // Apply rotations using Quaternions
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            Debug.Log($"After Rotation - Transform.rotation: {transform.rotation.eulerAngles}");
+
             playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+            Debug.Log($"After Rotation - Camera.localRotation: {playerCamera.transform.localRotation.eulerAngles}");
         }
     }
 
@@ -839,6 +843,24 @@ public class FirstPersonController : MonoBehaviour
 
         float angle = Vector3.Angle(slopeHit.normal, Vector3.up);
         return angle != 0f && angle <= maxSlopeAngle;
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log("Scene Loaded, re-enabling camera movement");
+        cameraCanMove = true;
+
     }
 
     public void OnValidate()

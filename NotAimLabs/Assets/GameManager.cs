@@ -11,17 +11,17 @@ public class GameManager : MonoBehaviour
         {
             Instance = this;
         }
-  else
-     {
-       Destroy(gameObject);
-     }
+        else
+        {
+            Destroy(gameObject);
+        }
 
-   SceneManager.sceneLoaded += OnSceneLoaded;
-  }
-    
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
 
-      private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-      {
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
         // Reset static variables on Scene load
         Target.ResetAccuracy();
 
@@ -30,19 +30,25 @@ public class GameManager : MonoBehaviour
             Score.Instance.ResetScore();
         }
 
-         ReinitializeUIReferences();
+        ReinitializeUIReferences();
 
-      }
+        FirstPersonController playerController = FindAnyObjectByType<FirstPersonController>();
+        if (playerController != null)
+        {
+            playerController.cameraCanMove = true;
+            playerController.playerCanMove = true;
+        }
+    }
 
-     private void ReinitializeUIReferences()
-     {
+    private void ReinitializeUIReferences()
+    {
         CountdownTimer.Instance.trObject = GameObject.Find("TargetsUI");
         CountdownTimer.Instance.Crosshair = GameObject.Find("Crosshair");
         CountdownTimer.Instance.finalScore = GameObject.Find("FinalScore");
         CountdownTimer.Instance.Clicktorestart = GameObject.Find("ClickToRestart");
         CountdownTimer.Instance.ScoreObject = GameObject.Find("ScoreText");
         CountdownTimer.Instance.AccuracyObject = GameObject.Find("AccuracyText");
-     }
+    }
 
     private void OnDestroy()
     {
@@ -50,4 +56,3 @@ public class GameManager : MonoBehaviour
     }
 }
 
-    

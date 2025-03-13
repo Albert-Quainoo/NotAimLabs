@@ -21,7 +21,7 @@ public class Pause : MonoBehaviour
         {
             PauseMenu.SetActive(false);
         }
-        
+
         // Initialize game state
         Time.timeScale = 1f;
         isGamePaused = false;
@@ -93,6 +93,11 @@ public class Pause : MonoBehaviour
         isGamePaused = false;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        // Force reset axes when resuming game
+        Input.ResetInputAxes();
+
+        fpsController.HandleMouseLook(true);
     }
 
     public void LoadMenu()

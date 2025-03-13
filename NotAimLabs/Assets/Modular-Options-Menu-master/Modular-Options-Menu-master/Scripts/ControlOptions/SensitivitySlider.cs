@@ -21,13 +21,28 @@ namespace ModularOptions
 
             if (cameraController != null)
             {
-                // Set up initial values
-                float savedSens = cameraController.mouseSensitivity;
-                Debug.Log($"Slider - Loading saved sensitivity from PlayerPrefs: {savedSens}");
+                // Get sens from PlayerPrefs 
+                float currentSens;
+
+                if (PlayerPrefs.HasKey(SENSITIVITY_PREF_KEY))
+                {
+                    currentSens = PlayerPrefs.GetFloat(SENSITIVITY_PREF_KEY);
+                    Debug.Log($"Slider - Loading saved sensitivity from PlayerPrefs: {currentSens}");
+
+                    if(cameraController.mouseSensitivity != currentSens)
+                    {
+                        cameraController.mouseSensitivity = currentSens;
+                    }
+
+                }
+                else
+                {
+                    currentSens = cameraController.mouseSensitivity;
+                    Debug.Log($"Slider - No saved value, using controller sensitivity: {currentSens}");
+                }
 
                 updatingValue = true;
-                cameraController.mouseSensitivity = savedSens;
-                slider.value = savedSens;
+                slider.value = currentSens;
                 updatingValue = false;
 
 
