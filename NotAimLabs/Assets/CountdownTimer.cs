@@ -14,9 +14,13 @@ public class CountdownTimer : MonoBehaviour
     public GameObject AccuracyObject;
     public GameObject ScoreObject;
     public GameObject Crosshair;
-    public GameObject finalScore;
-    public GameObject Clicktorestart;
+    public GameObject Finalscore;
+    public GameObject ClickToRestart;
     public Text CountdownText;
+    public Text finalScoreText;
+    public GameObject PauseMenu;
+    public GameObject DimOverlay;
+    public Button restartButton;
 
     // Timer Visuals
     [SerializeField] private Color normalTimerColor = Color.white;
@@ -25,7 +29,7 @@ public class CountdownTimer : MonoBehaviour
     private bool isWarningActive = false;
 
     // Game State
-    [SerializeField] private Score score;
+    [SerializeField] public Score score;
     public bool isGameOver { get; private set; }
     private bool canRestart = false;
     public Target target;
@@ -48,14 +52,47 @@ public class CountdownTimer : MonoBehaviour
         isGameOver = false;
         
         // Hide end-game UI at start
-        if (finalScore != null) finalScore.SetActive(false);
-        if (Clicktorestart != null) Clicktorestart.SetActive(false);
+        if (Finalscore != null) Finalscore.SetActive(false);
+        if (ClickToRestart != null) ClickToRestart.SetActive(false);
         
         // Show in-game UI
         if (ScoreObject != null) ScoreObject.SetActive(true);
         if (AccuracyObject != null) AccuracyObject.SetActive(true);
         if (Crosshair != null) Crosshair.SetActive(true);
         if (trObject != null) trObject.SetActive(true);
+
+        if (Finalscore != null)
+        {
+            finalScoreText = Finalscore.GetComponent<Text>();
+        }
+
+       if (restartButton == null)
+        {
+            if (ClickToRestart != null)
+            {
+                restartButton = ClickToRestart.GetComponent<Button>();
+            
+            }
+            else
+            {
+                GameObject buttonObj = GameObject.Find("ClickToRestart");
+                if (buttonObj != null)
+                {
+                    restartButton = buttonObj.GetComponent<Button>();
+                }
+            }
+        }
+
+       if (restartButton != null)
+        {
+            restartButton.onClick.AddListener(RestartGame);
+        }   
+       
+       else
+        {
+            Debug.LogError("Could not find restart button component!");
+        }
+
     }
 
     void Update()
@@ -79,11 +116,12 @@ public class CountdownTimer : MonoBehaviour
                 }
             }
         }
-        
+
         // Handle restart
-        if (isGameOver && canRestart && Input.GetMouseButtonDown(0))
+        else if (isGameOver && canRestart && Input.GetMouseButtonDown(0))
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            Debug.Log("Click detected, attempting restart");
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
 
@@ -116,34 +154,54 @@ public class CountdownTimer : MonoBehaviour
     void EndGame()
     {
         if (isGameOver) return;
+
         isGameOver = true;
+
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        if (PauseMenu != null) PauseMenu.SetActive(false);
+
+        if (DimOverlay != null) DimOverlay.SetActive(true);
+
 
         // Hide gameplay elements
         if (trObject != null) trObject.SetActive(false);
         if (Crosshair != null) Crosshair.SetActive(false);
         if (ScoreObject != null) ScoreObject.SetActive(false);
-        if (AccuracyObject != null) AccuracyObject.SetActive(false);
 
-        // Show end-game UI
-        if (finalScore != null)
-        {
-            finalScore.SetActive(true);
-            Text finalScoreText = finalScore.GetComponent<Text>();
-            if (finalScoreText != null && score != null)
-            {
-                finalScoreText.text = $"Final Score: {Mathf.RoundToInt(score.score)}\n" +
-                                    $"Accuracy: {Mathf.RoundToInt(score.scoreAccuracy)}%";
-            }
-        }
-
-        if (Clicktorestart != null)
-        {
-            Clicktorestart.SetActive(true);
-        }
+      // Hide the timer
 
         if (CountdownText != null)
         {
-            CountdownText.text = "0:00";
+            CountdownText.gameObject.SetActive(false);
+        }
+
+        if (Finalscore != null && finalScoreText == null)
+        {
+            finalScoreText = Finalscore.GetComponent<Text>();
+        }
+
+        if (finalScoreText != null)
+        {
+            float scoreValue = 0;
+            if (score != null)
+            {
+                scoreValue = score.score;
+            }
+            else if (Score.Instance != null)
+            {
+                scoreValue = Score.Instance.score;
+            }
+
+            finalScoreText.text = $"Final Score: {Mathf.RoundToInt(scoreValue)}";
+            Debug.Log($"Set final score text to: {finalScoreText.text}");
+        }
+
+
+       if (finalScoreText != null && score != null)
+        {
+            finalScoreText.text = $"Final Score: {Mathf.RoundToInt(score.score)}";
         }
 
         if (target != null)
@@ -151,7 +209,13 @@ public class CountdownTimer : MonoBehaviour
             target.DisableTarget();
         }
 
-        StartCoroutine(RestartCooldown());
+        if (ClickToRestart!= null)
+        {
+            ClickToRestart.SetActive(true);
+        }
+        canRestart = false;
+        Invoke("EnableRestart", 0.5f);
+
     }
 
     void ResetTimer()
@@ -161,12 +225,27 @@ public class CountdownTimer : MonoBehaviour
         if (CountdownText != null)
         {
             CountdownText.color = normalTimerColor;
+            CountdownText.gameObject.SetActive(true);
         }
     }
 
-    IEnumerator RestartCooldown()
+   void EnableRestart()
     {
-        yield return new WaitForSeconds(0.5f);
         canRestart = true;
+    }
+
+    public void RestartGame()
+    {
+        Debug.Log("RestartGame method called!");
+        try
+        {
+            Debug.Log($"Current scene: {SceneManager.GetActiveScene().name}, buildIndex: {SceneManager.GetActiveScene().buildIndex}");
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to restart game: {e.Message}");
+        }
+
     }
 }

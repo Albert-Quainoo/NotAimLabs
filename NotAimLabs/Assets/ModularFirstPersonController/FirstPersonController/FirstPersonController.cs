@@ -31,7 +31,6 @@ public class FirstPersonController : MonoBehaviour
         get => _mouseSensitivity;
         set
         {
-            Debug.Log($"FPC: Changing sensitivity from {_mouseSensitivity} to {value}");
             _mouseSensitivity = value;
             OnSensitivityChanged?.Invoke(value);
 
@@ -187,6 +186,12 @@ public class FirstPersonController : MonoBehaviour
 
     #endregion
 
+    #region Misc
+
+    private CountdownTimer countdownTimer;
+
+    #endregion
+
     private void InitializeComponents()
     {
         if (!componentsInitialized)
@@ -242,13 +247,11 @@ public class FirstPersonController : MonoBehaviour
     {
         if (playerCamera == null)
         {
-            Debug.LogError("Missing required camera component");
             return false;
         }
 
         if (rb == null && charController == null)
         {
-            Debug.LogError("Missing both Rigidbody and CharacterController components. At least one is required.");
             return false;
         }
 
@@ -257,14 +260,12 @@ public class FirstPersonController : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log("FPC Awake called");
         // Load sensitivity from PlayerPrefs on startup if it exists
         string prefKey = "MouseSensitivity";
         if (PlayerPrefs.HasKey(prefKey))
         {
             float savedSensitivity = PlayerPrefs.GetFloat(prefKey);
             _mouseSensitivity = savedSensitivity;
-            Debug.Log($"FPC Awake - Loaded sensitivity from PlayerPrefs: {savedSensitivity}");
         }
         else
         {
@@ -278,10 +279,10 @@ public class FirstPersonController : MonoBehaviour
     {
 
 
-        Debug.Log("FPC Start called");
+        
         if (!componentsInitialized)
         {
-            Debug.LogWarning("Components not initialized in start, attempting initialization");
+            
             InitializeComponents();
             if (!componentsInitialized) return;
         }
@@ -292,16 +293,20 @@ public class FirstPersonController : MonoBehaviour
 
         cameraCanMove = true;
 
-        Debug.Log($"First Person Controller: Initial Sens Value {mouseSensitivity}");
-        Debug.Log($"Camera Can Move: {cameraCanMove}, Player Can Move: {playerCanMove}");
+        countdownTimer = FindObjectOfType<CountdownTimer>();
     }
 
     private void SetupCursor()
     {
-        if (lockCursor)
+       if (lockCursor && (countdownTimer == null || !countdownTimer.isGameOver))
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
     }
 
@@ -389,9 +394,6 @@ public class FirstPersonController : MonoBehaviour
         {
             HandleMouseLook(true);
         }
-
-        Debug.Log($"Mouse X: {Input.GetAxis(xAxis)}, Mouse Y: {Input.GetAxis(yAxis)}");
-        Debug.Log($"Can Move: {cameraCanMove}, Components Initialized: {componentsInitialized}");
     }
 
     private void FixedUpdate()
@@ -404,6 +406,14 @@ public class FirstPersonController : MonoBehaviour
 
     public void HandleMouseLook(bool force = false)
     {
+       // Check if game is over
+       if (countdownTimer != null && countdownTimer.isGameOver)
+        {
+            // Cursor should not be locked when game is over
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            return;
+        }
         // Skip input handling if initial delay is active (unless forced)
         if (initialInputDelay && !force) return;
 
@@ -427,18 +437,15 @@ public class FirstPersonController : MonoBehaviour
 
             yaw += mouseX;
             pitch = Mathf.Clamp(pitch + mouseY, -maxLookAngle, maxLookAngle);
-            Debug.Log($"Calculated Yaw: {yaw}, Pitch: {pitch}");
-            Debug.Log($"Before Rotation - Transform.rotation: {transform.rotation.eulerAngles}");
-            Debug.Log($"Before Rotation - Camera.localRotation: {playerCamera.transform.localRotation.eulerAngles}");
-
-
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            Debug.Log($"After Rotation - Transform.rotation: {transform.rotation.eulerAngles}");
-
             playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
-            Debug.Log($"After Rotation - Camera.localRotation: {playerCamera.transform.localRotation.eulerAngles}");
         }
+
+        if (initialInputDelay && !force) return;
     }
+
+
+
 
     private void HandleMovementInput()
     {

@@ -44,8 +44,8 @@ public class GameManager : MonoBehaviour
     {
         CountdownTimer.Instance.trObject = GameObject.Find("TargetsUI");
         CountdownTimer.Instance.Crosshair = GameObject.Find("Crosshair");
-        CountdownTimer.Instance.finalScore = GameObject.Find("FinalScore");
-        CountdownTimer.Instance.Clicktorestart = GameObject.Find("ClickToRestart");
+        CountdownTimer.Instance.Finalscore = GameObject.Find("FinalScore");
+        CountdownTimer.Instance.ClickToRestart = GameObject.Find("ClickToRestart");
         CountdownTimer.Instance.ScoreObject = GameObject.Find("ScoreText");
         CountdownTimer.Instance.AccuracyObject = GameObject.Find("AccuracyText");
     }

@@ -32,7 +32,7 @@ public class Pause : MonoBehaviour
     void Update()
     {
         // Only handle pause if we have a pause menu
-        if (PauseMenu != null && Input.GetKeyDown(KeyCode.Escape))
+        if (PauseMenu != null && Input.GetKeyDown(KeyCode.Escape) && !CountdownTimer.Instance.isGameOver)
         {
             if (isGamePaused)
             {
@@ -98,6 +98,38 @@ public class Pause : MonoBehaviour
         Input.ResetInputAxes();
 
         fpsController.HandleMouseLook(true);
+    }
+
+    public void DisablePauseOnGameOver()
+    {
+        // Hides if pause menu is active 
+        if (PauseMenu != null && PauseMenu.activeSelf)
+        {
+            PauseMenu.SetActive(false);
+        }
+
+        // Resumes game at normal speed
+        Time.timeScale = 1f;
+
+        // Set cursor visible but does not lock 
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // Set a flag to prevent opening pause menu
+        isGamePaused = false;
+
+        // Disable player controller if it exists
+        if (fpsController != null)
+        {
+            fpsController.cameraCanMove = false;
+            fpsController.playerCanMove = false;
+        }
+
+        // UI elements
+        if (Crosshair != null) Crosshair.SetActive(false); // Hides crosshair
+        if (timerUI != null) timerUI.SetActive(false); // Hides timer
+        if (accuracyUI != null) accuracyUI.SetActive(true); // Explicitly keep accuracy visible
+        if (scoreUI != null) scoreUI.SetActive(false); // Hides current score
     }
 
     public void LoadMenu()
