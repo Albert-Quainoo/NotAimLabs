@@ -2175,8 +2175,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -8093974140063598788, guid: 2e860ea9e5d598a428374257d1dc2dbb, type: 2}
-  m_audioClip: {fileID: 8300000, guid: 7fc29a32c0261604b8d985cfb6a2961e, type: 3}
-  m_Resource: {fileID: 8300000, guid: 7fc29a32c0261604b8d985cfb6a2961e, type: 3}
+  m_audioClip: {fileID: 8300000, guid: 866ce583bf35f4d439d58caaee861197, type: 3}
+  m_Resource: {fileID: 8300000, guid: 866ce583bf35f4d439d58caaee861197, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -2184,7 +2184,7 @@ AudioSource:
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 128
+  Priority: 45
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -3900,8 +3900,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -8093974140063598788, guid: 2e860ea9e5d598a428374257d1dc2dbb, type: 2}
-  m_audioClip: {fileID: 8300000, guid: 7fc29a32c0261604b8d985cfb6a2961e, type: 3}
-  m_Resource: {fileID: 8300000, guid: 7fc29a32c0261604b8d985cfb6a2961e, type: 3}
+  m_audioClip: {fileID: 8300000, guid: 866ce583bf35f4d439d58caaee861197, type: 3}
+  m_Resource: {fileID: 8300000, guid: 866ce583bf35f4d439d58caaee861197, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -3909,7 +3909,7 @@ AudioSource:
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 128
+  Priority: 35
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -4108,8 +4108,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -8093974140063598788, guid: 2e860ea9e5d598a428374257d1dc2dbb, type: 2}
-  m_audioClip: {fileID: 8300000, guid: 7fc29a32c0261604b8d985cfb6a2961e, type: 3}
-  m_Resource: {fileID: 8300000, guid: 7fc29a32c0261604b8d985cfb6a2961e, type: 3}
+  m_audioClip: {fileID: 8300000, guid: 866ce583bf35f4d439d58caaee861197, type: 3}
+  m_Resource: {fileID: 8300000, guid: 866ce583bf35f4d439d58caaee861197, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -4117,7 +4117,7 @@ AudioSource:
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 128
+  Priority: 35
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -5050,7 +5050,7 @@ MonoBehaviour:
   maxLookAngle: 50
   initialInputDelay: 1
   _mouseSensitivity: 20
-  lockCursor: 0
+  lockCursor: 1
   crosshair: 0
   crosshairImage: {fileID: 21300000, guid: 3fa1dd2011652d44a8af9cfcb505ff93, type: 3}
   crosshairColor: {r: 1, g: 1, b: 1, a: 1}
