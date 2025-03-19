@@ -68,6 +68,7 @@ namespace ModularOptions
 
                 updatingValue = false;
 
+
             }
         }
 
