@@ -4,11 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System;
-
-#if UNITY_EDITOR
-using UnityEditor;
-using System.Net;
-#endif
+using UnityEditor.Experimental.GraphView;
+using UnityEditor.Overlays;
 
 public class FirstPersonController : MonoBehaviour
 {
@@ -22,8 +19,9 @@ public class FirstPersonController : MonoBehaviour
     public bool initialInputDelay = true;
 
     // Internal reference to mouse sensitivity (for editor)
-    [SerializeField, HideInInspector]
+    [SerializeField]
     public float _mouseSensitivity = 10f;
+
 
     // Public sensitivity property that actually gets used for movement
     public float mouseSensitivity
@@ -38,8 +36,7 @@ public class FirstPersonController : MonoBehaviour
             PlayerPrefs.SetFloat("MouseSensitivity", value);
             PlayerPrefs.Save();
 
-            //Force an input update
-            Input.ResetInputAxes();
+           
 
 
             Debug.Log($"FPC: Sensitivity set to: {_mouseSensitivity}");
@@ -189,8 +186,34 @@ public class FirstPersonController : MonoBehaviour
     #region Misc
 
     private CountdownTimer countdownTimer;
+    private bool sensitivityLoaded = false;
 
     #endregion
+    private void Awake()
+    {
+        LoadSensitivtyFromPlayerPrefs();
+
+    }
+
+    private void Start()
+    {
+
+        if (!componentsInitialized)
+        {
+
+            InitializeComponents();
+            if (!componentsInitialized) return;
+        }
+
+
+        SetupCursor();
+        SetupCrosshair();
+        SetupSprintBar();
+
+        cameraCanMove = true;
+
+        countdownTimer = FindAnyObjectByType<CountdownTimer>();
+    }
 
     private void InitializeComponents()
     {
@@ -258,9 +281,12 @@ public class FirstPersonController : MonoBehaviour
         return true;
     }
 
-    private void Awake()
+    
+   
+
+
+    private void LoadSensitivtyFromPlayerPrefs()
     {
-        // Load sensitivity from PlayerPrefs on startup if it exists
         string prefKey = "MouseSensitivity";
         if (PlayerPrefs.HasKey(prefKey))
         {
@@ -269,31 +295,8 @@ public class FirstPersonController : MonoBehaviour
         }
         else
         {
-            Debug.Log($"FPC Awake - No saved sensitivity found, using default: {_mouseSensitivity}");
+            Debug.Log($"FPC Awake - No Saved Sensitivity found, using default {_mouseSensitivity}");
         }
-
-        InitializeComponents();
-    }
-
-    private void Start()
-    {
-
-
-        
-        if (!componentsInitialized)
-        {
-            
-            InitializeComponents();
-            if (!componentsInitialized) return;
-        }
-
-        SetupCursor();
-        SetupCrosshair();
-        SetupSprintBar();
-
-        cameraCanMove = true;
-
-        countdownTimer = FindObjectOfType<CountdownTimer>();
     }
 
     private void SetupCursor()
@@ -414,8 +417,7 @@ public class FirstPersonController : MonoBehaviour
             Cursor.visible = true;
             return;
         }
-        // Skip input handling if initial delay is active (unless forced)
-        if (initialInputDelay && !force) return;
+   
 
         // Manage cursor lock/visibility
         if (Input.GetKeyDown(KeyCode.Escape) && lockCursor)
@@ -432,8 +434,8 @@ public class FirstPersonController : MonoBehaviour
         // Apply rotation if camera can move
         if (cameraCanMove)
         {
-            float mouseX = Input.GetAxis(xAxis) * mouseSensitivity;
-            float mouseY = Input.GetAxis(yAxis) * mouseSensitivity * (invertCamera ? 1 : -1);
+            float mouseX = Input.GetAxisRaw(xAxis) * mouseSensitivity;
+            float mouseY = Input.GetAxisRaw(yAxis) * mouseSensitivity * (invertCamera ? 1 : -1);
 
             yaw += mouseX;
             pitch = Mathf.Clamp(pitch + mouseY, -maxLookAngle, maxLookAngle);
@@ -449,8 +451,8 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleMovementInput()
     {
-        float horizontalInput = Input.GetAxis("Horizontal");
-        float verticalInput = Input.GetAxis("Vertical");
+        float horizontalInput = Input.GetAxisRaw("Horizontal");
+        float verticalInput = Input.GetAxisRaw("Vertical");
 
         // Calculate movement direction
         Vector3 forward = transform.TransformDirection(Vector3.forward);
@@ -474,7 +476,7 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleRigidbodyMovement()
     {
-        Vector3 targetVelocity = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+        Vector3 targetVelocity = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
 
         // Calculate target speed
         float currentSpeed = isSprinting && CanSprint() ? sprintSpeed : walkSpeed;
