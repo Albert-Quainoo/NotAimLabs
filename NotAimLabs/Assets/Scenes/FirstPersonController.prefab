@@ -192,7 +192,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 90
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -568,8 +568,8 @@ MonoBehaviour:
   fov: 90
   invertCamera: 0
   cameraCanMove: 1
-  mouseSensitivity: 0.7
   maxLookAngle: 50
+  _mouseSensitivity: 3.05
   lockCursor: 1
   crosshair: 1
   crosshairImage: {fileID: 21300000, guid: 3fa1dd2011652d44a8af9cfcb505ff93, type: 3}
@@ -579,9 +579,6 @@ MonoBehaviour:
   zoomKey: 324
   zoomFOV: 30
   zoomStepTime: 5
-  playerCanMove: 0
-  walkSpeed: 5
-  maxVelocityChange: 10
   enableSprint: 1
   unlimitedSprint: 1
   sprintKey: 304
@@ -608,6 +605,19 @@ MonoBehaviour:
   joint: {fileID: 2349169961449950629}
   bobSpeed: 10
   bobAmount: {x: 0, y: 0.1, z: 0}
+  enableFootsteps: 1
+  baseStepSpeed: 0.5
+  crouchStepMultiplier: 1.5
+  sprintStepMultiplier: 0.6
+  footstepAudioSource: {fileID: 0}
+  woodClips: []
+  metalClips: []
+  grassClips: []
+  playerCanMove: 0
+  walkSpeed: 5
+  maxVelocityChange: 10
+  gravity: 30
+  maxSlopeAngle: 50
 --- !u!114 &2124980844700240699
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -622,12 +632,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cam: {fileID: 2349169961257433895}
   score: {fileID: 2124980844700240698}
-  ScoreIncrement: 0
-  hits: 0
-  totalclick: 0
-  Accuracy: 0
-  timeSinceLastHit: 0
+  baseScore: 100
+  maxTimeBonus: 50
+  timeBonusDecayRate: 2
   missPenalty: 50
+  timeSinceLastHit: 0
 --- !u!114 &2124980844700240698
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -640,8 +649,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5679300120ab5a44d9027422e3fc3b4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  score: 0
-  scoreAccuracy: 0
+  scoreText: {fileID: 0}
+  accuracyText: {fileID: 0}
 --- !u!1 &2349169962780360588
 GameObject:
   m_ObjectHideFlags: 0

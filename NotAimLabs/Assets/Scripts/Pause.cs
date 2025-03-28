@@ -97,7 +97,7 @@ public class Pause : MonoBehaviour
         // Force reset axes when resuming game
         Input.ResetInputAxes();
 
-        fpsController.HandleMouseLook(true);
+        fpsController.HandleMouseLook();
     }
 
     public void DisablePauseOnGameOver()
