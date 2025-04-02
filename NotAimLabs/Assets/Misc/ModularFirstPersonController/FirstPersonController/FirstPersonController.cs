@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 using System;
 
 public class FirstPersonController : MonoBehaviour
@@ -17,7 +18,7 @@ public class FirstPersonController : MonoBehaviour
 
     [SerializeField]
     [Range(0.1f, 20f)]
-    public float _mouseSensitivity = 10f; 
+    public float _mouseSensitivity = 10f;
 
     public float mouseSensitivity
     {
@@ -33,7 +34,7 @@ public class FirstPersonController : MonoBehaviour
 
             OnSensitivityChanged?.Invoke(_mouseSensitivity);
 
-            PlayerPrefs.SetFloat("MouseSensitivity", _mouseSensitivity);
+            PlayerPrefs.SetFloat(SENSITIVITY_PREF_KEY, _mouseSensitivity);
             PlayerPrefs.Save();
 
             Debug.Log($"FPC: Sensitivity set to: {_mouseSensitivity}");
@@ -163,10 +164,9 @@ public class FirstPersonController : MonoBehaviour
     public float gravity = 30f;
 
     [Header("Slope Handling")]
-    public float maxSlopeAngle = 50f; 
-    private float slopeSlideSpeed = 10f; 
+    public float maxSlopeAngle = 50f;
+    private float slopeSlideSpeed = 10f;
     private RaycastHit slopeHit;
-    
 
     private Rigidbody rb;
     private CharacterController charController;
@@ -179,15 +179,21 @@ public class FirstPersonController : MonoBehaviour
     #region Misc
 
     private CountdownTimer countdownTimer;
-    private bool sensitivityLoaded = false; 
+    private bool sensitivityLoaded = false;
 
     #endregion
 
-    private const string SENSITIVITY_PREF_KEY = "MouseSensitivity"; 
+    private const string SENSITIVITY_PREF_KEY = "MouseSensitivity";
 
     private void Awake()
     {
         LoadSensitivtyFromPlayerPrefs();
+
+        if (PlayerPrefs.HasKey(SENSITIVITY_PREF_KEY))
+        {
+            PlayerPrefs.SetFloat(SENSITIVITY_PREF_KEY, _mouseSensitivity);
+            PlayerPrefs.Save();
+        }
     }
 
     private void Start()
@@ -227,7 +233,6 @@ public class FirstPersonController : MonoBehaviour
             return;
         }
 
-
         if (playerCamera != null)
         {
             playerCamera.fieldOfView = fov;
@@ -250,7 +255,6 @@ public class FirstPersonController : MonoBehaviour
             jointOriginalPos = joint.localPosition;
         }
 
-
         if (rb != null)
         {
             rb.freezeRotation = true;
@@ -258,12 +262,10 @@ public class FirstPersonController : MonoBehaviour
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         }
 
-
         sprintRemaining = sprintDuration;
         sprintCooldownReset = sprintCooldown;
 
         componentsInitialized = true;
-
     }
 
     private bool HasRequiredComponents()
@@ -281,7 +283,7 @@ public class FirstPersonController : MonoBehaviour
 
     private void LoadSensitivtyFromPlayerPrefs()
     {
-        if (sensitivityLoaded) return;
+        if (sensitivityLoaded && Application.isPlaying) return;
 
         if (PlayerPrefs.HasKey(SENSITIVITY_PREF_KEY))
         {
@@ -375,11 +377,26 @@ public class FirstPersonController : MonoBehaviour
             return;
         }
 
-
         if (playerCanMove)
         {
             if (cameraCanMove) HandleMouseLook();
             HandleMovementInput();
+
+          
+            if (Pause.isGamePaused || !playerCanMove)
+            {
+ 
+            }
+            else
+            {
+              
+                if (Input.GetMouseButtonDown(0)) 
+                {
+                }
+              
+            }
+        
+
 
             if (enableZoom) HandleZoom();
             if (enableSprint) HandleSprint();
@@ -400,7 +417,7 @@ public class FirstPersonController : MonoBehaviour
         CheckGround();
     }
 
-    public void HandleMouseLook() 
+    public void HandleMouseLook()
     {
         if (Input.GetKeyDown(KeyCode.Escape) && lockCursor)
         {
@@ -416,10 +433,9 @@ public class FirstPersonController : MonoBehaviour
             }
         }
 
-
         if (cameraCanMove && (Cursor.lockState == CursorLockMode.Locked || !lockCursor))
         {
-            float mouseX = Input.GetAxisRaw(xAxis) * _mouseSensitivity; 
+            float mouseX = Input.GetAxisRaw(xAxis) * _mouseSensitivity;
             float mouseY = Input.GetAxisRaw(yAxis) * _mouseSensitivity * (invertCamera ? 1f : -1f);
 
             yaw += mouseX;
@@ -478,8 +494,8 @@ public class FirstPersonController : MonoBehaviour
         return enableSprint &&
                Input.GetKey(sprintKey) &&
                !isSprintCooldown &&
-               (unlimitedSprint || sprintRemaining > 0f) && 
-               (Input.GetAxisRaw("Vertical") > 0 || Input.GetAxisRaw("Horizontal") != 0) && 
+               (unlimitedSprint || sprintRemaining > 0f) &&
+               (Input.GetAxisRaw("Vertical") > 0 || Input.GetAxisRaw("Horizontal") != 0) &&
                !isCrouched;
     }
 
@@ -497,8 +513,8 @@ public class FirstPersonController : MonoBehaviour
                 isZoomed = Input.GetKey(zoomKey);
             }
 
-            targetFOV = isZoomed ? zoomFOV : defaultFOV; 
-            targetStepTime = zoomStepTime; 
+            targetFOV = isZoomed ? zoomFOV : defaultFOV;
+            targetStepTime = zoomStepTime;
 
             if (playerCamera != null)
             {
@@ -509,10 +525,8 @@ public class FirstPersonController : MonoBehaviour
 
     private void HandleSprint()
     {
-        
-        bool sprintInput = Input.GetKey(sprintKey) && CanSprint(); 
+        bool sprintInput = Input.GetKey(sprintKey) && CanSprint();
 
-       
         if (sprintInput && !isSprinting)
         {
             isSprinting = true;
@@ -524,7 +538,7 @@ public class FirstPersonController : MonoBehaviour
 
         if (isSprinting)
         {
-            if (!isZoomed && playerCamera != null) 
+            if (!isZoomed && playerCamera != null)
             {
                 targetFOV = sprintFOV;
                 targetStepTime = sprintFOVStepTime;
@@ -536,16 +550,15 @@ public class FirstPersonController : MonoBehaviour
                 sprintRemaining -= Time.deltaTime;
                 if (sprintRemaining <= 0)
                 {
-                    sprintRemaining = 0; 
+                    sprintRemaining = 0;
                     isSprinting = false;
                     isSprintCooldown = true;
-                    sprintCooldown = sprintCooldownReset; 
+                    sprintCooldown = sprintCooldownReset;
                 }
             }
         }
         else
         {
-           
             if (!isZoomed && playerCamera != null && playerCamera.fieldOfView != defaultFOV)
             {
                 targetFOV = defaultFOV;
@@ -553,7 +566,6 @@ public class FirstPersonController : MonoBehaviour
                 playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFOV, targetStepTime * Time.deltaTime);
             }
 
-            
             if (isSprintCooldown)
             {
                 sprintCooldown -= Time.deltaTime;
@@ -562,14 +574,12 @@ public class FirstPersonController : MonoBehaviour
                     isSprintCooldown = false;
                 }
             }
-           
             else if (!unlimitedSprint && sprintRemaining < sprintDuration)
             {
-                sprintRemaining += Time.deltaTime; 
-                sprintRemaining = Mathf.Min(sprintRemaining, sprintDuration); 
+                sprintRemaining += Time.deltaTime;
+                sprintRemaining = Mathf.Min(sprintRemaining, sprintDuration);
             }
         }
-
 
         if (useSprintBar && !unlimitedSprint && sprintBarCG != null)
         {
@@ -616,67 +626,64 @@ public class FirstPersonController : MonoBehaviour
         if (!enableCrouch) return;
 
         bool crouchInput = holdToCrouch ? Input.GetKey(crouchKey) : Input.GetKeyDown(crouchKey);
-        bool shouldBeCrouched = holdToCrouch ? crouchInput : (crouchInput ? !isCrouched : isCrouched); 
+        bool shouldBeCrouched = holdToCrouch ? crouchInput : (crouchInput ? !isCrouched : isCrouched);
 
         if (shouldBeCrouched != isCrouched)
         {
-            
             if (!shouldBeCrouched && charController != null && Physics.Raycast(transform.position, Vector3.up, charController.height))
             {
-                return; 
+                return;
             }
-            Crouch(); 
+            Crouch();
         }
     }
-
 
     private void Crouch()
     {
         isCrouched = !isCrouched;
         float targetYScale = isCrouched ? crouchHeight : originalScale.y;
 
-        
         transform.localScale = new Vector3(originalScale.x, targetYScale, originalScale.z);
 
-        
         if (charController != null)
         {
-            float newHeight = isCrouched ? charController.height * crouchHeight : originalScale.y * charController.height / originalScale.y; 
-            float centerOffsetY = (originalScale.y * charController.height / originalScale.y - newHeight) / 2f;
+            float originalControllerHeight = originalScale.y * charController.height / originalScale.y; 
+            float newHeight = isCrouched ? originalControllerHeight * crouchHeight : originalControllerHeight;
+            float centerOffsetY = (originalControllerHeight - newHeight) / 2f;
             charController.height = newHeight;
             charController.center = new Vector3(charController.center.x, charController.center.y + (isCrouched ? -centerOffsetY : centerOffsetY), charController.center.z);
         }
     }
 
+
     private void HandleHeadbob()
     {
         if (!enableHeadBob || joint == null) return;
 
-        bool isMoving = isWalking || isSprinting; 
+        bool isMoving = isWalking || isSprinting;
 
         if (isMoving && isGrounded)
         {
             float bobSpeedMultiplier = 1f;
-            if (isSprinting) bobSpeedMultiplier = 1.8f; 
-            else if (isCrouched) bobSpeedMultiplier = 0.7f; 
+            if (isSprinting) bobSpeedMultiplier = 1.8f;
+            else if (isCrouched) bobSpeedMultiplier = 0.7f;
 
             bobTimer += Time.deltaTime * bobSpeed * bobSpeedMultiplier;
 
             float sinWave = Mathf.Sin(bobTimer);
-            float cosWave = Mathf.Cos(bobTimer * 0.5f); 
+            float cosWave = Mathf.Cos(bobTimer * 0.5f);
 
             Vector3 bobOffset = new Vector3(
-                cosWave * bobAmount.x * bobSpeedMultiplier, 
-                sinWave * bobAmount.y * bobSpeedMultiplier, 
+                cosWave * bobAmount.x * bobSpeedMultiplier,
+                sinWave * bobAmount.y * bobSpeedMultiplier,
                 0
             );
-
 
             joint.localPosition = jointOriginalPos + bobOffset;
         }
         else
         {
-            bobTimer = 0; 
+            bobTimer = 0;
             joint.localPosition = Vector3.Lerp(joint.localPosition, jointOriginalPos, Time.deltaTime * bobSpeed * 0.5f);
         }
     }
@@ -693,27 +700,27 @@ public class FirstPersonController : MonoBehaviour
             if (footstepTimer <= 0)
             {
                 PlayFootstepSound();
-                footstepTimer = GetCurrentOffset; 
+                footstepTimer = GetCurrentOffset;
             }
         }
         else
         {
-            footstepTimer = 0; 
+            footstepTimer = 0;
         }
     }
 
     private void PlayFootstepSound()
     {
-        if (footstepAudioSource.enabled && Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 3f)) 
+        if (footstepAudioSource.enabled && Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 3f))
         {
-            AudioClip[] clipsToUse = woodClips; 
+            AudioClip[] clipsToUse = woodClips;
 
             switch (hit.collider.tag)
             {
                 case "Wood": clipsToUse = woodClips; break;
                 case "Metal": clipsToUse = metalClips; break;
                 case "Grass": clipsToUse = grassClips; break;
-                default: clipsToUse = woodClips; break; 
+                default: clipsToUse = woodClips; break;
             }
 
             if (clipsToUse != null && clipsToUse.Length > 0)
@@ -726,20 +733,21 @@ public class FirstPersonController : MonoBehaviour
 
     private void ApplyFinalMovements()
     {
-        if (!charController.isGrounded) 
+        if (charController == null) return; 
+
+        if (!charController.isGrounded)
         {
             moveDirection.y -= gravity * Time.deltaTime;
         }
         else
         {
-            moveDirection.y = -0.1f; 
+            moveDirection.y = -0.1f;
         }
 
-
-        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, charController.height / 2 * 1.1f)) 
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, charController.height / 2 * 1.1f))
         {
             float angle = Vector3.Angle(slopeHit.normal, Vector3.up);
-            if (angle > charController.slopeLimit && angle > maxSlopeAngle) 
+            if (angle > charController.slopeLimit) 
             {
                 Vector3 slideDirection = Vector3.ProjectOnPlane(Vector3.down, slopeHit.normal).normalized;
                 moveDirection.x += slideDirection.x * slopeSlideSpeed;
@@ -748,35 +756,30 @@ public class FirstPersonController : MonoBehaviour
         }
 
         charController.Move(moveDirection * Time.deltaTime);
-        isGrounded = charController.isGrounded; 
+        isGrounded = charController.isGrounded;
     }
-
 
     private void CheckGround()
     {
         if (rb != null)
         {
             Vector3 origin = transform.position + Vector3.up * 0.1f;
-            float checkDistance = 0.3f; 
+            float checkDistance = 0.3f;
             isGrounded = Physics.Raycast(origin, Vector3.down, out RaycastHit hit, checkDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
             groundNormal = isGrounded ? hit.normal : Vector3.up;
         }
         else if (charController != null)
         {
-           
             isGrounded = charController.isGrounded;
-           
-        
         }
     }
 
-
     private void CreateCrosshair()
     {
-        if (transform.Find("CrosshairCanvas") != null) return; 
+        if (transform.Find("CrosshairCanvas") != null) return;
 
         GameObject canvasGO = new GameObject("CrosshairCanvas");
-        canvasGO.transform.SetParent(transform); 
+        canvasGO.transform.SetParent(transform);
 
         Canvas canvas = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -795,7 +798,7 @@ public class FirstPersonController : MonoBehaviour
         else
         {
             Debug.LogWarning("Crosshair sprite not assigned, creating default pixel.");
-            Texture2D tex = new Texture2D(2, 2); 
+            Texture2D tex = new Texture2D(2, 2);
             Color[] colors = new Color[4];
             for (int i = 0; i < colors.Length; ++i) colors[i] = Color.white;
             tex.SetPixels(colors);
@@ -804,16 +807,15 @@ public class FirstPersonController : MonoBehaviour
         }
 
         crosshairObject.color = crosshairColor;
-        crosshairObject.raycastTarget = false; 
+        crosshairObject.raycastTarget = false;
 
         RectTransform rect = crosshairObject.rectTransform;
-        rect.anchoredPosition = Vector2.zero; 
+        rect.anchoredPosition = Vector2.zero;
         rect.sizeDelta = new Vector2(25, 25);
         rect.anchorMin = new Vector2(0.5f, 0.5f);
         rect.anchorMax = new Vector2(0.5f, 0.5f);
         rect.pivot = new Vector2(0.5f, 0.5f);
     }
-
 
     public void SetSensitivity(float newSensitivity)
     {
@@ -823,14 +825,15 @@ public class FirstPersonController : MonoBehaviour
     private bool IsSlope()
     {
         if (!isGrounded) return false;
-        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, charController != null ? charController.height / 2 * 1.1f : 1.0f))
+        float checkDist = charController != null ? charController.height / 2 * 1.1f : 1.0f;
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, checkDist))
         {
             float angle = Vector3.Angle(slopeHit.normal, Vector3.up);
-            return angle > 0.1f && angle <= (charController != null ? charController.slopeLimit : maxSlopeAngle);
+            float limit = charController != null ? charController.slopeLimit : maxSlopeAngle;
+            return angle > 0.1f && angle <= limit;
         }
         return false;
     }
-
 
     private void OnEnable()
     {
@@ -844,23 +847,24 @@ public class FirstPersonController : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (this == null || !gameObject.activeInHierarchy) return; 
+        if (this == null || !gameObject.activeInHierarchy) return;
 
         Debug.Log($"FPC: Scene {scene.name} loaded. Re-enabling camera movement.");
         cameraCanMove = true;
+        playerCanMove = true;
+        sensitivityLoaded = false;
         SetupCursor();
-        LoadSensitivtyFromPlayerPrefs(); 
+        LoadSensitivtyFromPlayerPrefs();
     }
 
-  
     public void OnValidate()
     {
-        if (playerCamera != null && !Application.isPlaying) 
+        if (playerCamera != null && !Application.isPlaying)
         {
             defaultFOV = fov;
             playerCamera.fieldOfView = fov;
         }
-        _mouseSensitivity = Mathf.Clamp(_mouseSensitivity, 0.1f, 20f);
 
+        _mouseSensitivity = Mathf.Clamp(_mouseSensitivity, 0.1f, 20f);
     }
 }

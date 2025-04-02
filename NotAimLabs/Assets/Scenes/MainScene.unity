@@ -2274,8 +2274,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8dda6b426597327429541152be4dc000, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 4459864850420561678}
-  score: {fileID: 1217070867}
+  playerCamera: {fileID: 0}
+  score: {fileID: 0}
+  maxShootDistance: 100
+  shootCooldown: 0.2
   baseScore: 100
   maxTimeBonus: 50
   timeBonusDecayRate: 2
@@ -5048,7 +5050,6 @@ MonoBehaviour:
   invertCamera: 0
   cameraCanMove: 1
   maxLookAngle: 50
-  initialInputDelay: 1
   _mouseSensitivity: 20
   lockCursor: 1
   crosshair: 0

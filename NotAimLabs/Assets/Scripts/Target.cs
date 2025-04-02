@@ -1,8 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
-
 
 public class Target : MonoBehaviour
 {
@@ -10,15 +6,35 @@ public class Target : MonoBehaviour
     private static int successfulHits = 0;
     private static Value accuracyDisplay;
 
+    private void Awake()
+    {
+        if (accuracyDisplay == null)
+        {
+            accuracyDisplay = FindAnyObjectByType<Value>();
+            if (accuracyDisplay == null)
+            {
+                Debug.LogWarning("Target cannot find Accuracy Display (Value script) in the scene.");
+            }
+        }
+    }
+
     public void Hit()
     {
+        if (TargetBounds.Instance != null)
+        {
+            transform.position = TargetBounds.Instance.GetRandomPosition();
+        }
+        else
+        {
+            Debug.LogError("TargetBounds.Instance is null! Cannot reposition target.");
+        }
 
-        transform.position = TargetBounds.Instance.GetRandomPosition();
-
-        // Play sound effect on hit
         AudioSource audioSource = GetComponent<AudioSource>();
-        audioSource.loop = false;
-        audioSource.Play();
+        if (audioSource != null)
+        {
+            audioSource.loop = false;
+            audioSource.Play();
+        }
     }
 
     public static void RecordShot()
@@ -27,19 +43,21 @@ public class Target : MonoBehaviour
         UpdateAccuracy();
     }
 
+    public static void RecordHit()
+    {
+        successfulHits++;
+    }
+
     private static void UpdateAccuracy()
     {
         if (accuracyDisplay != null)
         {
-            if (totalShots == 0)
+            float accuracy = 0f;
+            if (totalShots > 0)
             {
-                accuracyDisplay.UpdateAccuracy(0f);
+                accuracy = (float)successfulHits / totalShots;
             }
-            else
-            {
-                float accuracy = (float)successfulHits / totalShots;
-                accuracyDisplay.UpdateAccuracy(accuracy);
-            }
+            accuracyDisplay.UpdateAccuracy(accuracy);
         }
     }
 
@@ -51,9 +69,9 @@ public class Target : MonoBehaviour
         {
             accuracyDisplay.UpdateAccuracy(0f);
         }
+        Debug.Log("Accuracy Reset.");
     }
 
-    // Disable the target
     public void DisableTarget()
     {
         gameObject.SetActive(false);

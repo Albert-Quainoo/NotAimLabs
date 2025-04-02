@@ -22,6 +22,10 @@ namespace ModularOptions
         [Tooltip("Number of decimal places to display in the text.")]
         public int decimalPlaces = 2;
 
+        [Header("Persistence")]
+        [Tooltip("PlayerPrefs key to save/load sensitivity value")]
+        public string sensitivityPrefsKey = "MouseSensitivity";
+
         private bool internalValueUpdate = false;
 
         private void Awake()
@@ -40,7 +44,6 @@ namespace ModularOptions
             if (slider != null) slider.wholeNumbers = false;
         }
 
-
         private void Start()
         {
             if (cameraController == null || slider == null)
@@ -51,22 +54,7 @@ namespace ModularOptions
             }
 
             ConfigureSliderRange();
-
-            float initialSensitivity = cameraController.mouseSensitivity;
-            float roundedInitialSensitivity = RoundToStepSize(initialSensitivity);
-            roundedInitialSensitivity = Mathf.Clamp(roundedInitialSensitivity, minSensitivity, maxSensitivity);
-
-            internalValueUpdate = true;
-            slider.value = roundedInitialSensitivity;
-            UpdateValueDisplay(roundedInitialSensitivity);
-            internalValueUpdate = false;
-
-            if (!Mathf.Approximately(initialSensitivity, roundedInitialSensitivity))
-            {
-                Debug.Log($"SensitivitySlider: Initial FPC sensitivity ({initialSensitivity:F4}) was not on a step. Adjusting to {roundedInitialSensitivity:F4} and saving.");
-                cameraController.mouseSensitivity = roundedInitialSensitivity;
-            }
-
+            LoadSavedSensitivity();
             slider.onValueChanged.AddListener(OnSliderValueChanged);
         }
 
@@ -77,6 +65,41 @@ namespace ModularOptions
                 slider.minValue = minSensitivity;
                 slider.maxValue = maxSensitivity;
             }
+        }
+
+        private void LoadSavedSensitivity()
+        {
+           
+            float savedSensitivity;
+
+            if (PlayerPrefs.HasKey(sensitivityPrefsKey))
+            {
+               
+                savedSensitivity = PlayerPrefs.GetFloat(sensitivityPrefsKey);
+                Debug.Log($"SensitivitySlider: Loaded sensitivity from PlayerPrefs: {savedSensitivity}");
+            }
+            else
+            {
+               
+                savedSensitivity = cameraController.mouseSensitivity;
+                Debug.Log($"SensitivitySlider: No saved value found, using controller value: {savedSensitivity}");
+
+                
+                PlayerPrefs.SetFloat(sensitivityPrefsKey, savedSensitivity);
+                PlayerPrefs.Save();
+            }
+
+           
+            savedSensitivity = Mathf.Clamp(savedSensitivity, minSensitivity, maxSensitivity);
+
+            
+            cameraController.mouseSensitivity = savedSensitivity;
+
+           
+            internalValueUpdate = true;
+            slider.value = savedSensitivity;
+            UpdateValueDisplay(savedSensitivity);
+            internalValueUpdate = false;
         }
 
         private float RoundToStepSize(float value)
@@ -99,15 +122,27 @@ namespace ModularOptions
 
             if (cameraController != null)
             {
-                float steppedValue = RoundToStepSize(rawValueFromSlider);
-                steppedValue = Mathf.Clamp(steppedValue, minSensitivity, maxSensitivity);
+                float finalValue = sliderStepSize > 0 ?
+                    RoundToStepSize(rawValueFromSlider) :
+                    rawValueFromSlider;
 
-                cameraController.mouseSensitivity = steppedValue;
-                UpdateValueDisplay(steppedValue);
+                finalValue = Mathf.Clamp(finalValue, minSensitivity, maxSensitivity);
 
-                internalValueUpdate = true;
-                slider.SetValueWithoutNotify(steppedValue);
-                internalValueUpdate = false;
+                cameraController.mouseSensitivity = finalValue;
+
+                PlayerPrefs.SetFloat(sensitivityPrefsKey, finalValue);
+                PlayerPrefs.Save();
+
+                UpdateValueDisplay(finalValue);
+
+                if (!Mathf.Approximately(rawValueFromSlider, finalValue))
+                {
+                    internalValueUpdate = true;
+                    slider.SetValueWithoutNotify(finalValue);
+                    internalValueUpdate = false;
+                }
+
+                Debug.Log($"Sensitivity changed and saved: {finalValue}");
             }
         }
 
@@ -121,19 +156,39 @@ namespace ModularOptions
         {
             if (cameraController != null && slider != null)
             {
-                float currentValue = slider.value;
-                float steppedValue = RoundToStepSize(currentValue);
-                steppedValue = Mathf.Clamp(steppedValue, minSensitivity, maxSensitivity);
+                float sensitivity = PlayerPrefs.HasKey(sensitivityPrefsKey) ?
+                    PlayerPrefs.GetFloat(sensitivityPrefsKey) :
+                    cameraController.mouseSensitivity;
+
+                sensitivity = Mathf.Clamp(sensitivity, minSensitivity, maxSensitivity);
+                cameraController.mouseSensitivity = sensitivity;
 
                 string formatString = "F" + decimalPlaces.ToString();
-                Debug.Log(string.Format("Force update to sensitivity: {0:" + formatString + "}", steppedValue));
-
-                cameraController.mouseSensitivity = steppedValue;
-                UpdateValueDisplay(steppedValue);
+                Debug.Log(string.Format("Force update to sensitivity: {0:" + formatString + "}", sensitivity));
 
                 internalValueUpdate = true;
-                slider.SetValueWithoutNotify(steppedValue);
+                slider.SetValueWithoutNotify(sensitivity);
+                UpdateValueDisplay(sensitivity);
                 internalValueUpdate = false;
+            }
+        }
+
+        public void SaveSettings()
+        {
+            PlayerPrefs.SetFloat(sensitivityPrefsKey, cameraController.mouseSensitivity);
+            PlayerPrefs.Save();
+            Debug.Log($"Settings saved: Sensitivity = {cameraController.mouseSensitivity}");
+        }
+
+        public void LogCurrentValues()
+        {
+            if (cameraController != null)
+            {
+                float playerPrefsValue = PlayerPrefs.HasKey(sensitivityPrefsKey) ?
+                    PlayerPrefs.GetFloat(sensitivityPrefsKey) : -1;
+
+                Debug.Log($"Sensitivity values - Controller: {cameraController.mouseSensitivity}, " +
+                          $"Slider: {slider.value}, PlayerPrefs: {playerPrefsValue}");
             }
         }
     }
