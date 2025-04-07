@@ -4799,7 +4799,7 @@ Transform:
   m_GameObject: {fileID: 4459864850420561676}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 4.3655742e-11, w: 1}
-  m_LocalPosition: {x: 0, y: 0.75000006, z: 2.7600002}
+  m_LocalPosition: {x: 0, y: 0.78, z: 4.99}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4857,7 +4857,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 103
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -4989,7 +4989,7 @@ GameObject:
   - component: {fileID: 4459864851147092902}
   - component: {fileID: 4459864851147092903}
   m_Layer: 0
-  m_Name: Reticle
+  m_Name: 'Crosshair '
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5046,15 +5046,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerCamera: {fileID: 4459864850420561678}
-  fov: 60
+  fov: 103
   invertCamera: 0
   cameraCanMove: 1
   maxLookAngle: 50
-  _mouseSensitivity: 20
+  _mouseSensitivity: 10
   lockCursor: 1
-  crosshair: 0
-  crosshairImage: {fileID: 21300000, guid: 3fa1dd2011652d44a8af9cfcb505ff93, type: 3}
-  crosshairColor: {r: 1, g: 1, b: 1, a: 1}
   enableZoom: 0
   holdToZoom: 0
   zoomKey: 324

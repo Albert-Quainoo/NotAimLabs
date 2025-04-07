@@ -62,21 +62,6 @@ public class FirstPersonControllerEditor : Editor
         EditorGUILayout.EndHorizontal();
 
         fpc.lockCursor = EditorGUILayout.ToggleLeft(new GUIContent("Lock and Hide Cursor", "Turns off the cursor visibility and locks it to the middle of the screen."), fpc.lockCursor);
-        fpc.crosshair = EditorGUILayout.ToggleLeft(new GUIContent("Auto Crosshair", "Determines if the basic crosshair will be turned on, and sets is to the center of the screen."), fpc.crosshair);
-
-        // Only displays crosshair options if crosshair is enabled
-        if (fpc.crosshair)
-        {
-            EditorGUI.indentLevel++;
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel(new GUIContent("Crosshair Image", "Sprite to use as the crosshair."));
-            fpc.crosshairImage = (Sprite)EditorGUILayout.ObjectField(fpc.crosshairImage, typeof(Sprite), false);
-            EditorGUILayout.EndHorizontal();
-            EditorGUILayout.BeginHorizontal();
-            fpc.crosshairColor = EditorGUILayout.ColorField(new GUIContent("Crosshair Color", "Determines the color of the crosshair."), fpc.crosshairColor);
-            EditorGUILayout.EndHorizontal();
-            EditorGUI.indentLevel--;
-        }
 
         EditorGUILayout.Space();
         #endregion

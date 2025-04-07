@@ -53,14 +53,9 @@ public class FirstPersonController : MonoBehaviour
 
     #endregion
 
-    #region UI & Crosshair
+    #region UI
 
     public bool lockCursor = true;
-    public bool crosshair = true;
-    public Sprite crosshairImage;
-    public Color crosshairColor = Color.white;
-
-    private Image crosshairObject;
 
     #endregion
 
@@ -205,7 +200,6 @@ public class FirstPersonController : MonoBehaviour
         }
 
         SetupCursor();
-        SetupCrosshair();
         SetupSprintBar();
 
         cameraCanMove = true;
@@ -312,26 +306,6 @@ public class FirstPersonController : MonoBehaviour
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-        }
-    }
-
-    private void SetupCrosshair()
-    {
-        if (crosshair)
-        {
-            if (crosshairObject == null)
-            {
-                CreateCrosshair();
-            }
-            else
-            {
-                crosshairObject.sprite = crosshairImage;
-                crosshairObject.color = crosshairColor;
-            }
-        }
-        else if (crosshairObject != null)
-        {
-            crosshairObject.gameObject.SetActive(false);
         }
     }
 
@@ -774,48 +748,6 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
-    private void CreateCrosshair()
-    {
-        if (transform.Find("CrosshairCanvas") != null) return;
-
-        GameObject canvasGO = new GameObject("CrosshairCanvas");
-        canvasGO.transform.SetParent(transform);
-
-        Canvas canvas = canvasGO.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvasGO.AddComponent<CanvasScaler>();
-        canvasGO.AddComponent<GraphicRaycaster>();
-
-        GameObject crosshairGO = new GameObject("CrosshairImage");
-        crosshairGO.transform.SetParent(canvasGO.transform);
-
-        crosshairObject = crosshairGO.AddComponent<Image>();
-
-        if (crosshairImage != null)
-        {
-            crosshairObject.sprite = crosshairImage;
-        }
-        else
-        {
-            Debug.LogWarning("Crosshair sprite not assigned, creating default pixel.");
-            Texture2D tex = new Texture2D(2, 2);
-            Color[] colors = new Color[4];
-            for (int i = 0; i < colors.Length; ++i) colors[i] = Color.white;
-            tex.SetPixels(colors);
-            tex.Apply();
-            crosshairObject.sprite = Sprite.Create(tex, new Rect(0, 0, 2, 2), new Vector2(0.5f, 0.5f), 100.0f);
-        }
-
-        crosshairObject.color = crosshairColor;
-        crosshairObject.raycastTarget = false;
-
-        RectTransform rect = crosshairObject.rectTransform;
-        rect.anchoredPosition = Vector2.zero;
-        rect.sizeDelta = new Vector2(25, 25);
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-    }
 
     public void SetSensitivity(float newSensitivity)
     {

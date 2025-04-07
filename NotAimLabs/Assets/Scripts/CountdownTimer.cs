@@ -2,13 +2,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using System.Collections.Generic;
 
 public class CountdownTimer : MonoBehaviour
 {
     public static CountdownTimer Instance;
     private float currentTime = 0f;
     public float startingtime = 60f;
-    
+
     // UI Elements
     public GameObject trObject;
     public GameObject AccuracyObject;
@@ -34,6 +35,9 @@ public class CountdownTimer : MonoBehaviour
     private bool canRestart = false;
     public Target target;
 
+    // List to store possible crosshairs found during search
+    private List<GameObject> possibleCrosshairs = new List<GameObject>();
+
     private void Awake()
     {
         if (Instance == null)
@@ -50,15 +54,48 @@ public class CountdownTimer : MonoBehaviour
     {
         ResetTimer();
         isGameOver = false;
-        
+
         // Hide end-game UI at start
         if (Finalscore != null) Finalscore.SetActive(false);
         if (ClickToRestart != null) ClickToRestart.SetActive(false);
-        
+
         // Show in-game UI
         if (ScoreObject != null) ScoreObject.SetActive(true);
         if (AccuracyObject != null) AccuracyObject.SetActive(true);
-        if (Crosshair != null) Crosshair.SetActive(true);
+
+      
+        if (Crosshair == null)
+        {
+            FindCrosshair();
+        }
+        else
+        {
+            Debug.Log($"Using inspector-assigned crosshair: {Crosshair.name}");
+        }
+
+        // Cache the reference for future use, even if this component gets disabled
+        if (Crosshair != null)
+        {
+            Crosshair.SetActive(true);
+
+            // Store the crosshair name in PlayerPrefs as a fallback
+            PlayerPrefs.SetString("LastCrosshairName", Crosshair.name);
+        }
+        else
+        {
+            // Last resort - try to find by the last known name
+            string lastCrosshairName = PlayerPrefs.GetString("LastCrosshairName", "");
+            if (!string.IsNullOrEmpty(lastCrosshairName))
+            {
+                Crosshair = GameObject.Find(lastCrosshairName);
+                if (Crosshair != null)
+                {
+                    Debug.Log($"Found crosshair using saved name: {lastCrosshairName}");
+                    Crosshair.SetActive(true);
+                }
+            }
+        }
+
         if (trObject != null) trObject.SetActive(true);
 
         if (Finalscore != null)
@@ -66,12 +103,11 @@ public class CountdownTimer : MonoBehaviour
             finalScoreText = Finalscore.GetComponent<Text>();
         }
 
-       if (restartButton == null)
+        if (restartButton == null)
         {
             if (ClickToRestart != null)
             {
                 restartButton = ClickToRestart.GetComponent<Button>();
-            
             }
             else
             {
@@ -83,16 +119,14 @@ public class CountdownTimer : MonoBehaviour
             }
         }
 
-       if (restartButton != null)
+        if (restartButton != null)
         {
             restartButton.onClick.AddListener(RestartGame);
-        }   
-       
-       else
+        }
+        else
         {
             Debug.LogError("Could not find restart button component!");
         }
-
     }
 
     void Update()
@@ -102,7 +136,7 @@ public class CountdownTimer : MonoBehaviour
             if (currentTime > 0)
             {
                 currentTime -= Time.deltaTime;
-                
+
                 // Clamp the time to prevent negative values
                 currentTime = Mathf.Max(0f, currentTime);
 
@@ -129,7 +163,7 @@ public class CountdownTimer : MonoBehaviour
     {
         if (CountdownText != null)
         {
-            // Show minutes:seconds format if time is >= 60 seconds
+            
             if (startingtime >= 60f)
             {
                 int minutes = Mathf.FloorToInt(currentTime / 60f);
@@ -138,11 +172,11 @@ public class CountdownTimer : MonoBehaviour
             }
             else
             {
-                // Show seconds with decimal for times under 60 seconds
+                
                 CountdownText.text = currentTime.ToString("F1");
             }
 
-            // Handle warning color change
+        
             if (currentTime <= warningThreshold && !isWarningActive)
             {
                 isWarningActive = true;
@@ -156,22 +190,59 @@ public class CountdownTimer : MonoBehaviour
         if (isGameOver) return;
 
         isGameOver = true;
+        Debug.Log("EndGame called - disabling game elements");
 
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
         if (PauseMenu != null) PauseMenu.SetActive(false);
-
         if (DimOverlay != null) DimOverlay.SetActive(true);
-
 
         // Hide gameplay elements
         if (trObject != null) trObject.SetActive(false);
-        if (Crosshair != null) Crosshair.SetActive(false);
+
+        // Ensure crosshair is found and disabled
+        FindCrosshair();
+
+        if (Crosshair != null)
+        {
+            Debug.Log($"Disabling crosshair: {Crosshair.name}");
+            Crosshair.SetActive(false);
+
+           
+            foreach (Transform child in Crosshair.transform)
+            {
+                child.gameObject.SetActive(false);
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Crosshair reference is still null in EndGame");
+
+         
+            GameObject[] allObjects = GameObject.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+
+            foreach (GameObject go in allObjects)
+            {
+                if (go.name.ToLower().Contains("crosshair") ||
+                    go.name.ToLower().Contains("reticle") ||
+                    go.name.ToLower().Contains("cursor"))
+                {
+                    Debug.Log($"Found and disabling: {go.name}");
+                    go.SetActive(false);
+                }
+            }
+
+            foreach (GameObject crosshair in possibleCrosshairs)
+            {
+                Debug.Log($"Found and disabling: {crosshair.name}");
+                crosshair.SetActive(false);
+            }
+        }
+
         if (ScoreObject != null) ScoreObject.SetActive(false);
 
-      // Hide the timer
-
+        // Hide the timer
         if (CountdownText != null)
         {
             CountdownText.gameObject.SetActive(false);
@@ -198,24 +269,18 @@ public class CountdownTimer : MonoBehaviour
             Debug.Log($"Set final score text to: {finalScoreText.text}");
         }
 
-
-       if (finalScoreText != null && score != null)
-        {
-            finalScoreText.text = $"Final Score: {Mathf.RoundToInt(score.score)}";
-        }
-
         if (target != null)
         {
             target.DisableTarget();
         }
 
-        if (ClickToRestart!= null)
+        if (ClickToRestart != null)
         {
             ClickToRestart.SetActive(true);
         }
+
         canRestart = false;
         Invoke("EnableRestart", 0.5f);
-
     }
 
     void ResetTimer()
@@ -229,7 +294,7 @@ public class CountdownTimer : MonoBehaviour
         }
     }
 
-   void EnableRestart()
+    void EnableRestart()
     {
         canRestart = true;
     }
@@ -246,6 +311,53 @@ public class CountdownTimer : MonoBehaviour
         {
             Debug.LogError($"Failed to restart game: {e.Message}");
         }
+    }
 
+    
+    private void FindCrosshair()
+    {
+        if (Crosshair != null)
+        {
+            Debug.Log($"Crosshair already assigned: {Crosshair.name}");
+            return;
+        }
+
+        // First try direct name
+        Crosshair = GameObject.Find("Crosshair");
+        if (Crosshair != null)
+        {
+            Debug.Log($"Found crosshair by name: {Crosshair.name}");
+        }
+
+       
+        if (Crosshair == null)
+        {
+            Debug.Log("Searching for crosshair by name pattern...");
+            GameObject[] allObjects = GameObject.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+            foreach (GameObject go in allObjects)
+            {
+                if (go.name.ToLower().Contains("crosshair") ||
+                   go.name.ToLower().Contains("reticle") ||
+                   go.name.ToLower().Contains("cursor"))
+                {
+                    Debug.Log($"Found potential crosshair: {go.name}");
+                    possibleCrosshairs.Add(go);
+                    Crosshair = go;
+                    break;
+                }
+            }
+        }
+
+      
+        if (Crosshair == null && GameObject.FindWithTag("Crosshair") != null)
+        {
+            Crosshair = GameObject.FindWithTag("Crosshair");
+            Debug.Log($"Found crosshair by tag: {Crosshair.name}");
+        }
+
+        if (Crosshair == null)
+        {
+            Debug.LogWarning("Crosshair reference is still missing. Please assign it in the inspector or ensure it has 'Crosshair' in its name.");
+        }
     }
 }
